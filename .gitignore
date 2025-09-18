@@ -35,6 +35,14 @@ blob-report/
 
 # Supabase local state (optional)
 .supabase
+supabase.exe
+supabase/.temp/
 
 # OS files
 Thumbs.db
+
+# Local/temporary files
+prod_index.js
+vendor.js
+react.js
+temp_index.html

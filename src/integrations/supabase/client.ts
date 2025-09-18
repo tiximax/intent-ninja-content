@@ -4,19 +4,20 @@ import type { Database } from './types';
 
 const env = (typeof import.meta !== 'undefined') ? (import.meta as any).env || {} : {};
 let SUPABASE_URL: string | undefined = env.VITE_SUPABASE_URL;
-let SUPABASE_PUBLISHABLE_KEY: string | undefined = env.VITE_SUPABASE_ANON_KEY;
+// Accept both ANON_KEY and PUBLISHABLE_KEY naming to avoid env mismatch across environments
+let SUPABASE_ANON_KEY: string | undefined = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.warn('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Using placeholders (no real secret).');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY/PUBLISHABLE_KEY. Using placeholders (no real secret).');
   // Placeholders to avoid runtime crash during local dev/tests without real env
   SUPABASE_URL = SUPABASE_URL || 'https://placeholder.supabase.co';
-  SUPABASE_PUBLISHABLE_KEY = SUPABASE_PUBLISHABLE_KEY || 'public-anon-placeholder';
+  SUPABASE_ANON_KEY = SUPABASE_ANON_KEY || 'public-anon-placeholder';
 }
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
+export const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
   auth: {
     storage: localStorage,
     persistSession: true,

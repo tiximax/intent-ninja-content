@@ -21,18 +21,8 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 1024,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react';
-            if (id.includes('@radix-ui')) return 'radix';
-            if (id.includes('@tanstack')) return 'tanstack';
-            if (id.includes('lucide-react')) return 'icons';
-            return 'vendor';
-          }
-        },
-      },
-    },
+    // NOTE: remove custom manualChunks to avoid circular chunk imports
+    // that led to React being undefined at runtime (createContext error).
+    // Let Vite decide optimal chunking.
   },
 }));

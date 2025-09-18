@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SEO Intent Ninja - Professional Design System */
+
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 220 20% 97%;
+    --foreground: 215 25% 15%;
+    
+    /* SEO brand colors */
+    --primary: 195 85% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 195 85% 60%;
+    
+    --secondary: 145 65% 55%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 25 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* UI colors */
+    --muted: 220 15% 95%;
+    --muted-foreground: 215 15% 45%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 220 15% 88%;
+    --input: 220 15% 92%;
+    --ring: 195 85% 45%;
+    
+    /* Sidebar colors */
+    --sidebar-background: 215 25% 12%;
+    --sidebar-foreground: 215 15% 85%;
+    --sidebar-primary: 195 85% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 18%;
+    --sidebar-accent-foreground: 215 15% 85%;
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 195 85% 45%;
+    
+    /* SEO specific intent colors */
+    --intent-info: 210 85% 60%;
+    --intent-nav: 160 75% 50%;
+    --intent-commercial: 25 95% 55%;
+    --intent-transactional: 280 75% 60%;
+    --intent-local: 120 65% 50%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(195 85% 45%), hsl(195 85% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(145 65% 55%), hsl(145 65% 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 55%), hsl(25 95% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(195 85% 45%) 0%, hsl(280 75% 60%) 50%, hsl(25 95% 55%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 99%), hsl(220 15% 95%));
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -8px hsl(215 25% 15% / 0.15);
+    --shadow-medium: 0 8px 30px -12px hsl(215 25% 15% / 0.25);
+    --shadow-glow: 0 0 40px hsl(195 85% 60% / 0.3);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode adjustments */
+    --background: 215 25% 8%;
+    --foreground: 215 15% 92%;
+    
+    --card: 215 20% 12%;
+    --card-foreground: 215 15% 92%;
+    
+    --popover: 215 20% 12%;
+    --popover-foreground: 215 15% 92%;
+    
+    --primary: 195 85% 55%;
+    --primary-foreground: 215 25% 8%;
+    
+    --secondary: 145 65% 50%;
+    --secondary-foreground: 215 25% 8%;
+    
+    --muted: 215 20% 15%;
+    --muted-foreground: 215 15% 65%;
+    
+    --accent: 25 95% 60%;
+    --accent-foreground: 215 25% 8%;
+    
+    --destructive: 0 85% 65%;
+    --destructive-foreground: 215 25% 8%;
+    
+    --border: 215 20% 20%;
+    --input: 215 20% 18%;
+    --ring: 195 85% 55%;
+    
+    --sidebar-background: 215 25% 6%;
+    --sidebar-foreground: 215 15% 88%;
+    --sidebar-primary: 195 85% 55%;
+    --sidebar-primary-foreground: 215 25% 6%;
+    --sidebar-accent: 215 20% 12%;
+    --sidebar-accent-foreground: 215 15% 88%;
+    --sidebar-border: 215 20% 15%;
+    --sidebar-ring: 195 85% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground transition-all duration-300;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer components {
+  /* Intent badge styles */
+  .intent-info {
+    @apply bg-blue-100 text-blue-800 border-blue-200;
+  }
+  
+  .intent-nav {
+    @apply bg-teal-100 text-teal-800 border-teal-200;
+  }
+  
+  .intent-commercial {
+    @apply bg-orange-100 text-orange-800 border-orange-200;
+  }
+  
+  .intent-transactional {
+    @apply bg-purple-100 text-purple-800 border-purple-200;
+  }
+  
+  .intent-local {
+    @apply bg-green-100 text-green-800 border-green-200;
+  }
+  
+  /* Gradient text effects */
+  .gradient-text {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}

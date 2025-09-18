@@ -1,0 +1,56 @@
+name: E2E Tests (Playwright)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+        env:
+          # Feature flags for stable CI runs
+          VITE_USE_MOCK_CONTENT: 'true'
+          VITE_BYPASS_AUTH: 'true'
+          VITE_E2E_TEST_MODE: 'true'
+          # Env placeholders (safe). Set real values as repository secrets to override.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+
+      - name: Upload test-results (traces, screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Playwright report (if available)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

@@ -42,6 +42,15 @@ export interface KeywordResearchResponse {
 export function getProviderName(): 'mock' | 'serpapi' {
   try {
     const enableFlag = (typeof import.meta !== 'undefined' && String((import.meta as any).env?.VITE_ENABLE_SERPAPI_PROVIDER || '').toLowerCase() === 'true');
+    const mode = (typeof import.meta !== 'undefined' && ((import.meta as any).env?.MODE || (import.meta as any).env?.VITE_NODE_ENV || 'development')).toString();
+
+    // Trong production: chỉ bật SerpApi khi có enableFlag qua ENV
+    if (mode === 'production') {
+      if (enableFlag) return 'serpapi';
+      return 'mock';
+    }
+
+    // Trong dev/test: cho phép bật bằng ENV hoặc localStorage key (tiện thử nghiệm)
     const clientKey = (typeof window !== 'undefined') ? localStorage.getItem('SERPAPI_API_KEY') : undefined;
     if (enableFlag || (clientKey && clientKey.trim().length > 0)) {
       return 'serpapi';

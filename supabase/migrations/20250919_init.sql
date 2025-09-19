@@ -32,7 +32,7 @@ create table if not exists public.profiles (
 -- Bảng content
 create table if not exists public.content (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
+  user_id uuid,
   project_id uuid not null references public.projects(id) on delete cascade,
   title text not null,
   content_body text not null,
@@ -43,6 +43,8 @@ create table if not exists public.content (
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
+-- Ensure user_id exists for legacy schemas where content table pre-existed without this column
+alter table public.content add column if not exists user_id uuid;
 
 -- Bảng keywords
 create table if not exists public.keywords (
@@ -72,47 +74,61 @@ alter table public.keywords enable row level security;
 
 -- Policies: chỉ cho phép user thao tác trên dữ liệu của chính họ
 -- projects
-create policy if not exists projects_select on public.projects
-  for select using (auth.uid() = user_id);
-create policy if not exists projects_insert on public.projects
-  for insert with check (auth.uid() = user_id);
-create policy if not exists projects_update on public.projects
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists projects_delete on public.projects
-  for delete using (auth.uid() = user_id);
+DROP POLICY IF EXISTS projects_select ON public.projects;
+CREATE POLICY projects_select ON public.projects
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS projects_insert ON public.projects;
+CREATE POLICY projects_insert ON public.projects
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS projects_update ON public.projects;
+CREATE POLICY projects_update ON public.projects
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS projects_delete ON public.projects;
+CREATE POLICY projects_delete ON public.projects
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- profiles (map 1-1 theo user_id)
-create policy if not exists profiles_select on public.profiles
-  for select using (auth.uid() = user_id);
-create policy if not exists profiles_upsert on public.profiles
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+DROP POLICY IF EXISTS profiles_select ON public.profiles;
+CREATE POLICY profiles_select ON public.profiles
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS profiles_upsert ON public.profiles;
+CREATE POLICY profiles_upsert ON public.profiles
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- content
-create policy if not exists content_select on public.content
-  for select using (auth.uid() = user_id);
-create policy if not exists content_insert on public.content
-  for insert with check (auth.uid() = user_id);
-create policy if not exists content_update on public.content
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists content_delete on public.content
-  for delete using (auth.uid() = user_id);
+DROP POLICY IF EXISTS content_select ON public.content;
+CREATE POLICY content_select ON public.content
+  FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS content_insert ON public.content;
+CREATE POLICY content_insert ON public.content
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS content_update ON public.content;
+CREATE POLICY content_update ON public.content
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS content_delete ON public.content;
+CREATE POLICY content_delete ON public.content
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- keywords: quyền theo project sở hữu bởi user
-create policy if not exists keywords_select on public.keywords
-  for select using (exists (
-    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
+DROP POLICY IF EXISTS keywords_select ON public.keywords;
+CREATE POLICY keywords_select ON public.keywords
+  FOR SELECT USING (EXISTS (
+    SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid()
   ));
-create policy if not exists keywords_insert on public.keywords
-  for insert with check (exists (
-    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
+DROP POLICY IF EXISTS keywords_insert ON public.keywords;
+CREATE POLICY keywords_insert ON public.keywords
+  FOR INSERT WITH CHECK (EXISTS (
+    SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid()
   ));
-create policy if not exists keywords_update on public.keywords
-  for update using (exists (
-    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
-  )) with check (exists (
-    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
+DROP POLICY IF EXISTS keywords_update ON public.keywords;
+CREATE POLICY keywords_update ON public.keywords
+  FOR UPDATE USING (EXISTS (
+    SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid()
+  )) WITH CHECK (EXISTS (
+    SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid()
   ));
-create policy if not exists keywords_delete on public.keywords
-  for delete using (exists (
-    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
+DROP POLICY IF EXISTS keywords_delete ON public.keywords;
+CREATE POLICY keywords_delete ON public.keywords
+  FOR DELETE USING (EXISTS (
+    SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid()
   ));

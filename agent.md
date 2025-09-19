@@ -302,3 +302,21 @@ supabase secrets set SERPAPI_API_KEY=testkey123 --project-ref msnakgazemgwnxzgfi
 Hướng dẫn sử dụng:
 - Vào Keyword Research, nhập seed keyword, nhấn Research
 - Nhấn Export CSV để tải file "keywords.csv"
+
+## Cập nhật Live Test Suite - 2025-09-19
+
+- E2E mặc định: 12 passed, 3 skipped (7.4s)
+- Live generate-content (Gemini): 1/1 PASSED (4.0s)
+- Live generate-content (OpenAI): 1/1 PASSED (3.8s)
+- Live serpapi-keywords (SerpApi): 1/1 PASSED (3.2s)
+
+Ghi chú:
+- Có thông báo Assertion failed từ Node/UV trên Windows sau khi test kết thúc; không ảnh hưởng kết quả (các bài test vẫn pass).
+
+Hành động đã thực hiện hôm nay:
+- Tạo WARP.md tại repo root: hướng dẫn build/lint/test, cách chạy 1 test, kiến trúc cấp cao, Testing & CI, và quy ước dự án.
+- Chạy toàn bộ E2E (mock/UI) và các live tests (Gemini, OpenAI, SerpApi) — tất cả đều pass.
+
+Hành động tiếp theo (nếu cần):
+- Có thể chạy định kỳ các live tests trong CI bằng secrets phù hợp để giám sát Edge Functions.
+- Mở rộng test E2E cho các luồng ít được cover (nếu còn).

@@ -43,7 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
           
           {/* Content */}
-          <div className="flex-1 p-6 bg-gradient-subtle">
+          <div className="flex-1 p-4 sm:p-6 bg-gradient-subtle">
             {children}
           </div>
         </main>

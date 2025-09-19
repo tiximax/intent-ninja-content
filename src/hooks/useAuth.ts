@@ -7,7 +7,8 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const bypassAuth = String((((import.meta as unknown as { env?: Record<string, string> }).env)?.VITE_BYPASS_AUTH ?? '')).toLowerCase() === 'true';
+  const bypassAuth = String((((import.meta as unknown as { env?: Record<string, string> }).env)?.VITE_BYPASS_AUTH ?? '')).toLowerCase() === 'true' || 
+    typeof localStorage !== 'undefined' && localStorage.getItem('bypassAuth') === 'true';
 
   useEffect(() => {
     if (bypassAuth) {

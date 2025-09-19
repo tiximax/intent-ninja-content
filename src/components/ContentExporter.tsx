@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateJsonLd } from "@/components/SeoMetaSchema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,39 +7,42 @@ import { useToast } from "@/hooks/use-toast";
 import { Download, FileText, Code, Globe } from "lucide-react";
 
 interface ContentExporterProps {
-  content: string;
+  content: string; // HTML content preferred
   title: string;
+  metaDescription?: string;
   format?: 'markdown' | 'html' | 'txt' | 'json';
 }
 
-export function ContentExporter({ content, title, format = 'markdown' }: ContentExporterProps) {
+export function ContentExporter({ content, title, metaDescription = '', format = 'markdown' }: ContentExporterProps) {
   const [exportFormat, setExportFormat] = useState(format);
   const { toast } = useToast();
 
   const formatContent = (content: string, format: string): string => {
     switch (format) {
-      case 'html':
+      case 'html': {
+        const desc = (metaDescription && metaDescription.trim()) ? metaDescription : (content.replace(/<[^>]+>/g, '').slice(0, 160));
+        const jsonLd = generateJsonLd(title, desc, content);
         return `<!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <meta name="description" content="${content.substring(0, 160)}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <meta name="description" content="${desc}">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${desc}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="${desc}">
+  <script type="application/ld+json">${jsonLd}</script>
 </head>
 <body>
-    <article>
-        <h1>${title}</h1>
-        ${content.split('\n').map(line => {
-          if (line.startsWith('# ')) return `<h1>${line.replace('# ', '')}</h1>`;
-          if (line.startsWith('## ')) return `<h2>${line.replace('## ', '')}</h2>`;
-          if (line.startsWith('### ')) return `<h3>${line.replace('### ', '')}</h3>`;
-          if (line.trim() === '') return '<br>';
-          return `<p>${line}</p>`;
-        }).join('\n')}
-    </article>
+  <article>
+${content}
+  </article>
 </body>
 </html>`;
+      }
       
       case 'txt':
         return `${title}\n${'='.repeat(title.length)}\n\n${content}`;

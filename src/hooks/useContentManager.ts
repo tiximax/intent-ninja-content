@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useEnhancedToast } from '@/components/ui/enhanced-toast';
 
 interface SavedContent {
   id: string;
@@ -29,6 +29,7 @@ export const useContentManager = () => {
   const [contents, setContents] = useState<SavedContent[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const enhancedToast = useEnhancedToast();
 
   const localMode = String(((import.meta as any).env?.VITE_E2E_TEST_MODE ?? '')).toLowerCase() === 'true';
   const localKey = 'local-content';
@@ -88,7 +89,7 @@ export const useContentManager = () => {
         };
         list.unshift(newItem);
         localStorage.setItem(localKey, JSON.stringify(list));
-        toast.success('Lưu nội dung thành công');
+        enhancedToast.success('Đã lưu thành công', 'Nội dung đã được lưu.', 'data-save');
         return newItem;
       }
 
@@ -109,11 +110,11 @@ export const useContentManager = () => {
 
       if (error) throw error;
 
-      toast.success('Lưu nội dung thành công');
+      enhancedToast.success('Đã lưu thành công', 'Nội dung đã được lưu.', 'data-save');
       return data;
     } catch (error) {
       console.error('Error saving content:', error);
-      toast.error('Lưu nội dung thất bại');
+      enhancedToast.error('Lưu thất bại', 'Không thể lưu nội dung. Vui lòng thử lại.', 'data-save');
       throw error;
     } finally {
       setSaving(false);
@@ -131,7 +132,7 @@ export const useContentManager = () => {
           list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
           localStorage.setItem(localKey, JSON.stringify(list));
         }
-        toast.success('Cập nhật nội dung thành công');
+        enhancedToast.success('Đã cập nhật', 'Nội dung đã được cập nhật.', 'data-save');
         return;
       }
 
@@ -145,10 +146,10 @@ export const useContentManager = () => {
 
       if (error) throw error;
 
-      toast.success('Cập nhật nội dung thành công');
+      enhancedToast.success('Đã cập nhật', 'Nội dung đã được cập nhật.', 'data-save');
     } catch (error) {
       console.error('Error updating content:', error);
-      toast.error('Cập nhật nội dung thất bại');
+      enhancedToast.error('Cập nhật thất bại', 'Không thể cập nhật nội dung. Vui lòng thử lại.', 'data-save');
       throw error;
     } finally {
       setSaving(false);
@@ -162,7 +163,7 @@ export const useContentManager = () => {
         const list: any[] = raw ? JSON.parse(raw) : [];
         const filtered = list.filter((c) => c.id !== id);
         localStorage.setItem(localKey, JSON.stringify(filtered));
-        toast.success('Xóa nội dung thành công');
+        enhancedToast.success('Đã xóa', 'Nội dung đã được xóa.', 'data-save');
         return;
       }
 
@@ -173,10 +174,10 @@ export const useContentManager = () => {
 
       if (error) throw error;
 
-      toast.success('Xóa nội dung thành công');
+      enhancedToast.success('Đã xóa', 'Nội dung đã được xóa.', 'data-save');
     } catch (error) {
       console.error('Error deleting content:', error);
-      toast.error('Xóa nội dung thất bại');
+      enhancedToast.error('Xóa thất bại', 'Không thể xóa nội dung. Vui lòng thử lại.', 'data-save');
       throw error;
     }
   };

@@ -37,6 +37,10 @@ test('create project, generate mock content and save', async ({ page }) => {
   const overallScore = page.locator('div').filter({ hasText: /\d{1,3}\s*\/?\s*100/ }).first();
   await expect(overallScore).toBeVisible();
 
+  // Preview phải hiển thị HTML (có thẻ h1)
+  const h1InPreview = page.locator('.prose h1').first();
+  await expect(h1InPreview).toBeVisible();
+
   // Lưu nội dung
   const saveBtn = page.getByRole('button', { name: /Lưu nội dung|Đang lưu/i });
   await saveBtn.click();

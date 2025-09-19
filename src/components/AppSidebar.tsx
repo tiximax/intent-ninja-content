@@ -43,7 +43,7 @@ const toolsItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
@@ -96,7 +96,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size={isMobile ? "lg" : "default"}>
                     <NavLink 
                       to={item.url} 
                       end
@@ -122,7 +122,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {toolsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size={isMobile ? "lg" : "default"}>
                     <NavLink 
                       to={item.url} 
                       end
@@ -145,7 +145,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size={isMobile ? "lg" : "default"}>
                     <NavLink 
                       to="/api-setup" 
                       className={getNavClasses}
@@ -157,7 +157,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size={isMobile ? "lg" : "default"}>
                     <NavLink 
                       to="/settings" 
                       className={getNavClasses}

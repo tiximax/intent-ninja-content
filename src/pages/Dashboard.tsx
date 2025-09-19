@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,14 +10,18 @@ import ContentGeneratorForm from "@/components/ContentGeneratorForm";
 import KeywordResearchPanel from "@/components/KeywordResearchPanel";
 import { IntentAnalysisCard } from "@/components/IntentAnalysisCard";
 import { SeoScoreCard } from "@/components/SeoScoreCard";
-import { ContentExporter } from "@/components/ContentExporter";
+// Lazy-loaded heavy components
+const ContentExporterLazy = lazy(() => import("@/components/ContentExporter").then(m => ({ default: m.ContentExporter })));
+import SeoMetaSchema from "@/components/SeoMetaSchema";
 import { ContentPreview } from "@/components/ContentPreview";
-import { CompetitorAnalysis } from "@/components/CompetitorAnalysis";
+const CompetitorAnalysisLazy = lazy(() => import("@/components/CompetitorAnalysis").then(m => ({ default: m.CompetitorAnalysis })));
 import ContentLibrary from "@/components/ContentLibrary";
 import { useContentGeneration } from "@/hooks/useContentGeneration";
 import { useContentManager } from "@/hooks/useContentManager";
 import { useProjectManager } from "@/hooks/useProjectManager";
 import { useAuth } from "@/hooks/useAuth";
+import { DashboardErrorBoundary } from "@/components/ui/error-boundary";
+import { ContentLoadingState, SaveLoadingState, CardLoadingState } from "@/components/ui/loading";
 import { 
   Brain, 
   Target, 
@@ -120,20 +124,26 @@ export default function Dashboard() {
   const handleFormSubmit = async (formData: any) => {
     if (!currentProject) {
       toast({
-        title: "Chọn dự án",
-        description: "Vui lòng chọn hoặc tạo dự án trước khi tạo nội dung.",
-        variant: "destructive"
+        title: "Tạo nháp không cần dự án",
+        description: "Bạn có thể tạo nội dung nháp ngay bây giờ. Để Lưu, vui lòng chọn hoặc tạo dự án trong Settings.",
       });
-      return;
     }
 
     try {
+      // Đọc draft từ localStorage để lấy outline và các trường đang có trong form con
+      let draft: any = {};
+      try {
+        const raw = localStorage.getItem('content-generator-draft');
+        if (raw) draft = JSON.parse(raw);
+      } catch {}
+
       await generateContent({
-        title: formData.title || "Nội dung SEO",
-        keywords: formData.keywords || [],
-        language: formData.language || "vi",
-        tone: formData.tone || "professional",
-        wordCount: formData.wordCount || 1000
+        title: formData.title || draft.title || "Nội dung SEO",
+        keywords: formData.keywords || (draft.keywords ? String(draft.keywords).split(',').map((k: string)=>k.trim()).filter(Boolean) : []),
+        language: formData.language || draft.language || "vi",
+        tone: formData.tone || draft.tone || "professional",
+        wordCount: formData.wordCount || draft.wordCount || 1000,
+        outline: draft.outline && Array.isArray(draft.outline) && draft.outline.length ? draft.outline : undefined
       });
       
       setShowResults(true);
@@ -172,9 +182,10 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
+      <DashboardErrorBoundary>
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
           <Card className="shadow-soft hover:shadow-medium transition-all">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -256,7 +267,7 @@ export default function Dashboard() {
                       onClick={() => handleFormSubmit({})} 
                       className="w-full" 
                       variant="hero"
-                      disabled={isGenerating || !currentProject}
+                      disabled={isGenerating}
                     >
                       {isGenerating ? (
                         <>
@@ -273,7 +284,7 @@ export default function Dashboard() {
 
                     {!currentProject && (
                       <p className="text-sm text-muted-foreground text-center">
-                        Vui lòng chọn dự án trong phần Settings
+                        Bạn vẫn có thể tạo bản nháp. Để lưu nội dung, hãy chọn dự án trong phần Settings.
                       </p>
                     )}
                   </CardContent>
@@ -309,8 +320,10 @@ export default function Dashboard() {
                         <IntentAnalysisCard intents={mockIntents} />
                       </TabsContent>
 
-                      <TabsContent value="competitor" className="mt-4">
-                        <CompetitorAnalysis />
+<TabsContent value="competitor" className="mt-4">
+                        <Suspense fallback={<CardLoadingState />}>
+                          <CompetitorAnalysisLazy />
+                        </Suspense>
                       </TabsContent>
                     </Tabs>
                   </CardContent>
@@ -321,8 +334,8 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold">Nội dung đã tạo</h2>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleSaveContent} disabled={saving}>
-                      {saving ? 'Đang lưu...' : 'Lưu nội dung'}
+                    <Button variant="outline" onClick={handleSaveContent} disabled={saving} className="flex items-center gap-2">
+                      {saving ? <SaveLoadingState /> : 'Lưu nội dung'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowResults(false)}>
                       <RefreshCw className="w-4 h-4 mr-2" />
@@ -350,11 +363,20 @@ export default function Dashboard() {
                       title="Phân tích SEO"
                       keywords={generatedContent?.keywordDensity ? [generatedContent.keywordDensity] : []}
                     />
-                    
-                    <ContentExporter
-                      content={generatedContent?.content || ''}
-                      title="Xuất nội dung"
+
+                    <SeoMetaSchema
+                      title={generatedContent?.title || ''}
+                      metaDescription={generatedContent?.metaDescription || ''}
+                      contentHtml={generatedContent?.content || ''}
                     />
+                    
+<Suspense fallback={<CardLoadingState />}>
+                      <ContentExporterLazy
+                        content={generatedContent?.content || ''}
+                        title={generatedContent?.title || 'Nội dung SEO'}
+                        metaDescription={generatedContent?.metaDescription || ''}
+                      />
+                    </Suspense>
                   </div>
                 </div>
               </div>
@@ -382,7 +404,8 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
+      </DashboardErrorBoundary>
     </DashboardLayout>
   );
 }

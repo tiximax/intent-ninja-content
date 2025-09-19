@@ -183,6 +183,89 @@ export default function ProjectManager() {
         </Card>
       )}
 
+      {/* Brand Defaults for current project */}
+      {currentProject && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Brand defaults cho dự án hiện tại</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Brand voice preset</Label>
+                <Select defaultValue={(typeof window !== 'undefined' && localStorage.getItem(`brand-defaults-${currentProject.id}`)) ? (JSON.parse(localStorage.getItem(`brand-defaults-${currentProject.id}`) || '{}').brandVoicePreset || 'professional') : 'professional'} onValueChange={(val) => {
+                  const raw = localStorage.getItem(`brand-defaults-${currentProject.id}`);
+                  const cur = raw ? JSON.parse(raw) : {};
+                  cur.brandVoicePreset = val;
+                  localStorage.setItem(`brand-defaults-${currentProject.id}`, JSON.stringify(cur));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Chuyên nghiệp</SelectItem>
+                    <SelectItem value="friendly">Thân thiện</SelectItem>
+                    <SelectItem value="authoritative">Authority</SelectItem>
+                    <SelectItem value="storytelling">Kể chuyện</SelectItem>
+                    <SelectItem value="direct">Ngắn gọn</SelectItem>
+                    <SelectItem value="mybrand">Thương hiệu của tôi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Độ sâu mỗi mục</Label>
+                <Select defaultValue={(typeof window !== 'undefined' && localStorage.getItem(`brand-defaults-${currentProject.id}`)) ? (JSON.parse(localStorage.getItem(`brand-defaults-${currentProject.id}`) || '{}').sectionDepth || 'deep') : 'deep'} onValueChange={(val) => {
+                  const raw = localStorage.getItem(`brand-defaults-${currentProject.id}`);
+                  const cur = raw ? JSON.parse(raw) : {};
+                  cur.sectionDepth = val;
+                  localStorage.setItem(`brand-defaults-${currentProject.id}`, JSON.stringify(cur));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">Cơ bản (1–2)</SelectItem>
+                    <SelectItem value="standard">Chuẩn (2–3)</SelectItem>
+                    <SelectItem value="deep">Sâu (3–5)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+              <div className="space-y-2">
+                <Label>Ngành (industry preset)</Label>
+                <Select defaultValue={(typeof window !== 'undefined' && localStorage.getItem(`brand-defaults-${currentProject.id}`)) ? (JSON.parse(localStorage.getItem(`brand-defaults-${currentProject.id}`) || '{}').industryPreset || 'general') : 'general'} onValueChange={(val) => {
+                  const raw = localStorage.getItem(`brand-defaults-${currentProject.id}`);
+                  const cur = raw ? JSON.parse(raw) : {};
+                  cur.industryPreset = val;
+                  localStorage.setItem(`brand-defaults-${currentProject.id}`, JSON.stringify(cur));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Chung (General)</SelectItem>
+                    <SelectItem value="ecommerce">TMĐT / Bán hàng</SelectItem>
+                    <SelectItem value="saas_b2b">SaaS B2B</SelectItem>
+                    <SelectItem value="education">Giáo dục</SelectItem>
+                    <SelectItem value="ordership_tiximax">Ordership – TIXIMAX</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Brand voice (tùy chỉnh)</Label>
+                <Textarea rows={3} defaultValue={(typeof window !== 'undefined' && localStorage.getItem(`brand-defaults-${currentProject.id}`)) ? (JSON.parse(localStorage.getItem(`brand-defaults-${currentProject.id}`) || '{}').brandCustomStyle || '') : ''} onChange={(e) => {
+                  const raw = localStorage.getItem(`brand-defaults-${currentProject.id}`);
+                  const cur = raw ? JSON.parse(raw) : {};
+                  cur.brandCustomStyle = e.target.value;
+                  localStorage.setItem(`brand-defaults-${currentProject.id}`, JSON.stringify(cur));
+                }} />
+              </div>
+            <div className="text-sm text-muted-foreground">Đã lưu tự động. Trình tạo nội dung sẽ tự động prefill theo các giá trị này.</div>
+          </CardContent>
+        </Card>
+      )}
+
       {projects.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">

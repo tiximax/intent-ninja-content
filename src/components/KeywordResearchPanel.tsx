@@ -21,6 +21,7 @@ import {
 import { useKeywordResearch } from "@/hooks/useKeywordResearch";
 import { AdvancedKeywordFilters, type KeywordFilters } from "./AdvancedKeywordFilters";
 import { getProviderName } from "@/services/keywordsProvider";
+import { SearchLoadingState, ExportLoadingState } from "@/components/ui/loading";
 
 export default function KeywordResearchPanel() {
   const { researchKeywords, isLoading, keywordData } = useKeywordResearch();
@@ -96,10 +97,7 @@ export default function KeywordResearchPanel() {
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Analyzing...
-                </>
+                <SearchLoadingState />
               ) : (
                 <>
                   <Search className="w-4 h-4 mr-2" />

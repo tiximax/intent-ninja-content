@@ -12,6 +12,7 @@ interface ContentPreviewProps {
   keywords: string[];
   isEditable?: boolean;
   onContentChange?: (content: string) => void;
+  contentFormat?: 'auto' | 'markdown' | 'html';
 }
 
 export function ContentPreview({ 
@@ -19,7 +20,8 @@ export function ContentPreview({
   title, 
   keywords, 
   isEditable = false, 
-  onContentChange 
+  onContentChange,
+  contentFormat = 'auto'
 }: ContentPreviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
@@ -74,6 +76,8 @@ export function ContentPreview({
         return <p key={index} className="mb-3 leading-relaxed">{line}</p>;
       });
   };
+
+  const isLikelyHtml = (txt: string) => /<\s*(h1|h2|h3|p|ul|ol|li|table|section|div|span|article)\b/i.test(txt);
 
   const getWordCount = (text: string) => {
     return text.trim().split(/\s+/).length;
@@ -176,9 +180,13 @@ export function ContentPreview({
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="preview" className="mt-4">
+          <TabsContent value="preview" className="mt-4">
               <div className="prose prose-sm max-w-none bg-background p-4 rounded-lg border min-h-96 overflow-y-auto">
-                {renderMarkdownAsHtml(content)}
+                {(contentFormat === 'html' || (contentFormat === 'auto' && isLikelyHtml(content))) ? (
+                  <div dangerouslySetInnerHTML={{ __html: content }} />
+                ) : (
+                  renderMarkdownAsHtml(content)
+                )}
               </div>
             </TabsContent>
             

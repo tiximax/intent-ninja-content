@@ -3,7 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  timeout: 120_000,
+  retries: 0,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:8080',
@@ -14,15 +15,13 @@ export default defineConfig({
     command: 'npm run dev',
     port: 8080,
     reuseExistingServer: true,
-    timeout: 120_000,
+    timeout: 180_000,
     env: {
-      VITE_USE_MOCK_CONTENT: 'true',
+      VITE_USE_MOCK_CONTENT: 'false',
       VITE_BYPASS_AUTH: 'true',
       VITE_E2E_TEST_MODE: 'true',
-      VITE_SUPABASE_URL: 'https://placeholder.supabase.co',
-      VITE_SUPABASE_ANON_KEY: 'public-anon-placeholder',
-      // Force Mock provider by default in E2E to make tests deterministic
-      VITE_ENABLE_SERPAPI_PROVIDER: 'false',
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || '',
     },
   },
   projects: [

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LandingLayout } from "@/components/LandingLayout";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -20,7 +20,7 @@ const Index = () => {
   const { isAuthenticated } = useAuth();
   const mockMode = String(((import.meta as any).env?.VITE_USE_MOCK_CONTENT ?? '')).toLowerCase() === 'true';
   return (
-    <DashboardLayout>
+    <LandingLayout>
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center py-12 space-y-6">
@@ -193,7 +193,7 @@ const Index = () => {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </LandingLayout>
   );
 };
 

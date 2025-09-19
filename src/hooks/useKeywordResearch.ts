@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { apiRetry, RETRY_CONFIGS, RetryError } from '@/lib/retry';
+import { useEnhancedToast } from '@/components/ui/enhanced-toast';
 
 export interface Keyword {
   id: string;
@@ -66,6 +67,7 @@ export const useKeywordResearch = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [keywordData, setKeywordData] = useState<KeywordResearchResponse | null>(null);
+  const enhancedToast = useEnhancedToast();
 
   const searchKeywords = async (params: KeywordSearchParams): Promise<any[]> => {
     setLoading(true);
@@ -112,11 +114,11 @@ export const useKeywordResearch = () => {
       ]);
 
       setSearchResults(mockResults);
-      toast.success(`Tìm được ${mockResults.length} từ khóa`);
+      enhancedToast.keyword.success(mockResults.length);
       return mockResults;
     } catch (error) {
       console.error('Keyword search error:', error);
-      toast.error('Lỗi tìm kiếm từ khóa');
+      enhancedToast.keyword.error();
       return [];
     } finally {
       setLoading(false);
@@ -131,16 +133,34 @@ export const useKeywordResearch = () => {
     setIsLoading(true);
     
     try {
-      // Chuyển sang dùng provider strategy (mock/serpapi)
-      const { researchKeywordsProvider } = await import('@/services/keywordsProvider');
-      const response = await researchKeywordsProvider(seedKeyword, options);
+      const loadingId = enhancedToast.keyword.start();
+      const response = await apiRetry(
+        async () => {
+          // Chuyển sang dùng provider strategy (mock/serpapi)
+          const { researchKeywordsProvider } = await import('@/services/keywordsProvider');
+          return await researchKeywordsProvider(seedKeyword, options);
+        },
+        {
+          ...RETRY_CONFIGS.keywordResearch,
+          apiName: 'Keyword Research',
+          onRetry: (error, attempt) => {
+            enhancedToast.retryAttempt(attempt, RETRY_CONFIGS.keywordResearch.maxRetries || 3, 'keyword-research');
+          },
+        }
+      );
+      
       setKeywordData(response);
-      toast.success(`Found ${response.keywords.length} keywords and ${response.trends.length} trends`);
+      enhancedToast.keyword.success(response.keywords.length, loadingId);
       return response;
 
     } catch (error) {
-      console.error('Keyword research error:', error);
-      toast.error(error instanceof Error ? error.message : 'Unknown error occurred');
+      console.error('Keyword research failed after retries:', error);
+      
+      if (error instanceof RetryError) {
+        enhancedToast.keyword.error();
+      } else {
+        enhancedToast.keyword.error();
+      }
       throw error;
     } finally {
       setIsLoading(false);
@@ -175,15 +195,35 @@ export const useKeywordResearch = () => {
         competition_level: kw.competition
       }));
 
-      const { error } = await supabase
-        .from('keywords')
-        .insert(keywordData);
+      await apiRetry(
+        async () => {
+          const { error } = await supabase
+            .from('keywords')
+            .insert(keywordData);
+          
+          if (error) {
+            throw new Error(`Save keywords failed: ${error.message}`);
+          }
+        },
+        {
+          ...RETRY_CONFIGS.dataSave,
+          apiName: 'Save Keywords',
+        }
+      );
 
-      if (error) throw error;
-      toast.success('Đã lưu từ khóa vào dự án');
+      enhancedToast.success('Đã lưu từ khóa', 'Từ khóa đã được lưu vào dự án thành công.', 'data-save');
     } catch (error) {
-      console.error('Error saving keywords:', error);
-      toast.error('Lỗi lưu từ khóa');
+      console.error('Error saving keywords after retries:', error);
+      
+      if (error instanceof RetryError) {
+        enhancedToast.error(
+          'Lưu thất bại',
+          `Đã thử ${error.attempt} lần. Vui lòng kiểm tra kết nối và thử lại.`,
+          'data-save'
+        );
+      } else {
+        enhancedToast.error('Lỗi lưu từ khóa', 'Không thể lưu dữ liệu. Vui lòng thử lại.', 'data-save');
+      }
     }
   };
 

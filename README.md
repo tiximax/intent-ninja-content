@@ -1,3 +1,11 @@
+# Intent Ninja – SEO Content Orchestrator
+
+[![Release](https://img.shields.io/github/v/release/tiximax/intent-ninja-content)](https://github.com/tiximax/intent-ninja-content/releases)
+[![E2E Nightly (Mock)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-nightly.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-nightly.yml)
+[![E2E Live (Manual)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-live.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-live.yml)
+
+---
+
 # Supabase CLI
 
 [![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)

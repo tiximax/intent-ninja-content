@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.6.4 (2025-09-21)
+
+Các thay đổi nổi bật:
+
+- Content Library – Smart Filters & UX
+  - Bộ lọc nâng cao: Trạng thái, Dự án (current/all/specific), Khoảng ngày (bao gồm cuối ngày), Số từ (min/max), SEO score (min/max), TOC/FAQ toggles.
+  - Thêm bộ lọc "Keyword chứa" (lọc theo target_keywords) và nút "Sao chép URL lọc". Toàn bộ filter được đồng bộ URL (?q, status, project, from, to, minWords, maxWords, minScore, maxScore, toc, faq, kw).
+  - E2E: library-filters.spec.ts, library-keyword-filter.spec.ts.
+
+- Voice Search (Web Speech API)
+  - Nút micro cho Global Search trong Thư viện. Ưu tiên webkitSpeechRecognition để dễ stub trong E2E.
+  - E2E: library-voice-search.spec.ts.
+
+- Performance polish
+  - Landing: preconnect/dns-prefetch Supabase origin; prefetch các route chính từ landing; content-visibility cho Features/Benefits/CTA; hover prefetch bundle ở nav.
+  - Dashboard: lazy-load SeoScoreCard/SeoMetaSchema/ContentLibrary; content-visibility cho khu vực kết quả; prefetch bundle khi hover tab.
+
+- Observability
+  - Passthrough x-request-id từ frontend → Edge; Edge trả về requestId trong JSON (success/section/error). Live test xác nhận requestId.
+  - Tích hợp Sentry (frontend) với Browser Tracing; tự tắt ở E2E/mock; gắn tag requestId sau khi generate content.
+
+- Kết quả kiểm thử
+  - Full E2E (mock): xanh ổn định; Live generate-content: PASS (có assert requestId).
+
 ## v0.6.3 (2025-09-21)
 
 Các thay đổi nổi bật:

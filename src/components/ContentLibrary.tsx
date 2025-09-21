@@ -45,6 +45,7 @@ export default function ContentLibrary() {
   const [maxScore, setMaxScore] = useState<string>('');
   const [hasTOC, setHasTOC] = useState<boolean>(false);
   const [hasFAQ, setHasFAQ] = useState<boolean>(false);
+  const [kwContains, setKwContains] = useState<string>('');
 
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -127,9 +128,15 @@ export default function ContentLibrary() {
       if (typeof maxW === 'number' && words > maxW) return false;
       if (hasTOC && !toc) return false;
       if (hasFAQ && !faq) return false;
+      if (kwContains) {
+        const kw = String(kwContains).toLowerCase();
+        const arr = Array.isArray(c.target_keywords) ? c.target_keywords : [];
+        const hit = arr.some((k: string) => String(k || '').toLowerCase().includes(kw));
+        if (!hit) return false;
+      }
       return true;
     });
-  }, [baseFiltered, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ]);
+  }, [baseFiltered, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains]);
 
   const filteredContents = useMemo(() => {
     const q = searchTerm.trim();
@@ -229,6 +236,7 @@ export default function ContentLibrary() {
     const maxs = searchParams.get('maxScore') || '';
     const toc = searchParams.get('toc') === '1';
     const faq = searchParams.get('faq') === '1';
+    const kw = searchParams.get('kw') || '';
     setSearchTerm(q);
     setStatusFilter(st);
     setProjectFilter(pj);
@@ -240,6 +248,7 @@ export default function ContentLibrary() {
     setMaxScore(maxs);
     setHasTOC(toc);
     setHasFAQ(faq);
+    setKwContains(kw);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -257,8 +266,9 @@ export default function ContentLibrary() {
     if (maxScore) params.maxScore = maxScore;
     if (hasTOC) params.toc = '1';
     if (hasFAQ) params.faq = '1';
+    if (kwContains) params.kw = kwContains;
     setSearchParams(params);
-  }, [searchTerm, statusFilter, projectFilter, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ]);
+  }, [searchTerm, statusFilter, projectFilter, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains]);
 
   if (loading) {
     return (
@@ -352,6 +362,14 @@ export default function ContentLibrary() {
           <Button variant="outline" size="sm" data-testid="library-filter-toggle">
             <Filter className="h-4 w-4 mr-1" /> Bộ lọc
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); } catch {} }}
+            data-testid="library-copy-filter-url"
+          >
+            <Copy className="h-4 w-4 mr-1" /> Sao chép URL lọc
+          </Button>
         </div>
       </div>
 
@@ -381,6 +399,10 @@ export default function ContentLibrary() {
           <label className="text-xs text-muted-foreground">SEO score tối đa</label>
           <Input type="number" min={0} max={100} placeholder="max" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} data-testid="library-filter-maxscore" />
         </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Keyword chứa</label>
+          <Input type="text" placeholder="iphone, canon..." value={kwContains} onChange={(e) => setKwContains(e.target.value)} data-testid="library-filter-kw" />
+        </div>
         <div className="col-span-1 flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Checkbox id="has-toc" checked={hasTOC} onCheckedChange={(v) => setHasTOC(Boolean(v))} data-testid="library-filter-toc" />
@@ -393,7 +415,7 @@ export default function ContentLibrary() {
         </div>
         <div className="col-span-1 md:col-span-2 lg:col-span-6 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={() => {
-            setSearchTerm(''); setStatusFilter('all'); setProjectFilter('current'); setDateFrom(''); setDateTo(''); setMinWords(''); setMaxWords(''); setMinScore(''); setMaxScore(''); setHasTOC(false); setHasFAQ(false);
+            setSearchTerm(''); setStatusFilter('all'); setProjectFilter('current'); setDateFrom(''); setDateTo(''); setMinWords(''); setMaxWords(''); setMinScore(''); setMaxScore(''); setHasTOC(false); setHasFAQ(false); setKwContains('');
           }} data-testid="library-filter-clear">Xóa bộ lọc</Button>
         </div>
       </div>

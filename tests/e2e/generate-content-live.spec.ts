@@ -23,11 +23,13 @@ test('live generate-content returns JSON success', async () => {
     wordCount: 300,
   };
 
+  const reqId = 'e2e-live-request-id';
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${anon}`,
+      'x-request-id': reqId,
     },
     body: JSON.stringify(body),
   });
@@ -37,4 +39,7 @@ test('live generate-content returns JSON success', async () => {
   expect(data).toMatchObject({ success: true });
   expect(data.content?.title).toBeTruthy();
   expect(typeof data.content?.seoScore).toBe('number');
+  // requestId passthrough assertion
+  expect(typeof data.requestId).toBe('string');
+  expect(data.requestId).toBe(reqId);
 });

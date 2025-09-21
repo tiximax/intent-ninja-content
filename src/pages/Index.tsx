@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LandingLayout } from "@/components/LandingLayout";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 import { 
   Brain, 
   Zap, 
@@ -19,6 +20,24 @@ import {
 const Index = () => {
   const { isAuthenticated } = useAuth();
   const mockMode = String(((import.meta as any).env?.VITE_USE_MOCK_CONTENT ?? '')).toLowerCase() === 'true';
+
+  // Warm up most likely next routes for faster navigation
+  useEffect(() => {
+    (async () => {
+      try {
+        if (isAuthenticated) {
+          await import('./Dashboard');
+        } else {
+          await import('./Auth');
+        }
+        // Secondary routes
+        import('./KeywordResearch');
+        import('./SeoTools');
+        import('./Settings');
+      } catch {}
+    })();
+  }, [isAuthenticated]);
+
   return (
     <LandingLayout>
       <div className="max-w-7xl mx-auto">

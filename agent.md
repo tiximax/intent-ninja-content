@@ -715,3 +715,23 @@ Hướng dẫn nhanh:
 Next (đề xuất):
 - Thêm workflow thủ công e2e-live.yml để chạy live tests khi có secrets (VITE_SUPABASE_URL/ANON_KEY) — cần bạn duyệt secrets.
 - Nếu muốn, mình sẽ commit & push các thay đổi hiện tại (config/test/CI) vào master, tạo tag v0.6.1.
+
+### Workflow mới: E2E Live (Manual) – 2025-09-21
+
+- Đã thêm .github/workflows/e2e-live.yml để chạy live tests theo yêu cầu thủ công.
+- Cần cấu hình GitHub Secrets trước khi chạy:
+  - VITE_SUPABASE_URL: URL Supabase project (ví dụ: https://xxxxx.supabase.co)
+  - VITE_SUPABASE_ANON_KEY: anon key của project
+- Cách chạy:
+  - Vào tab Actions trên GitHub, chọn “E2E Live (Manual)” -> Run workflow
+  - Chọn suite:
+    - all: chạy tất cả các bài *live.spec.ts
+    - orchestrator3000: tests/e2e/generate-3000-ui-live.spec.ts
+    - generate-content: tests/e2e/generate-content-live.spec.ts
+    - gemini: tests/e2e/generate-content-gemini-live.spec.ts
+    - serpapi: tests/e2e/serpapi-live.spec.ts
+- Chi tiết thực thi:
+  - Dùng cấu hình Playwright: playwright.live.config.ts
+  - Env trong workflow: VITE_USE_MOCK_CONTENT=false, VITE_BYPASS_AUTH=true, VITE_E2E_TEST_MODE=true
+- Lưu ý:
+  - Keys cho OpenAI/Gemini/SerpApi phải được cấu hình trên Supabase Edge Functions (secrets) để live tests hoạt động; workflow chỉ cần Supabase URL/Anon Key để gọi function.

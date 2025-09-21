@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,25 +29,74 @@ import { useAuth } from '@/hooks/useAuth';
 export default function ContentLibrary() {
   const { user } = useAuth();
   const { contents, loading, deleteContent, updateContent, fetchContents } = useContentManager();
-  const { currentProject } = useProjectManager();
+  const { currentProject, projects } = useProjectManager();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('current'); // 'current' | 'all' | projectId
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [minWords, setMinWords] = useState<string>('');
+  const [maxWords, setMaxWords] = useState<string>('');
+  const [minScore, setMinScore] = useState<string>('');
+  const [maxScore, setMaxScore] = useState<string>('');
+  const [hasTOC, setHasTOC] = useState<boolean>(false);
+  const [hasFAQ, setHasFAQ] = useState<boolean>(false);
+
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-  const baseFiltered = contents.filter(content => {
-    const matchesStatus = statusFilter === 'all' || content.status === statusFilter;
-    const matchesProject = !currentProject || content.project_id === currentProject.id;
-    return matchesStatus && matchesProject;
-  });
+  const baseFiltered = useMemo(() => {
+    // Project matching by filter
+    const matchProject = (c: any) => {
+      if (projectFilter === 'all') return true;
+      if (projectFilter === 'current') return !currentProject || c.project_id === currentProject.id;
+      return c.project_id === projectFilter;
+    };
+    return contents.filter(content => {
+      const matchesStatus = statusFilter === 'all' || content.status === statusFilter;
+      const matchesProject = matchProject(content);
+      return matchesStatus && matchesProject;
+    });
+  }, [contents, statusFilter, projectFilter, currentProject]);
 
-  const filteredContents = (() => {
+  const advancedFiltered = useMemo(() => {
+    const fromTs = dateFrom ? new Date(dateFrom).getTime() : undefined;
+    const toTsRaw = dateTo ? new Date(dateTo).getTime() : undefined;
+    const toTs = typeof toTsRaw === 'number' ? (toTsRaw + (24 * 60 * 60 * 1000) - 1) : undefined; // inclusive end-of-day
+    const minW = minWords ? parseInt(minWords, 10) : undefined;
+    const maxW = maxWords ? parseInt(maxWords, 10) : undefined;
+    const minS = minScore ? parseInt(minScore, 10) : undefined;
+    const maxS = maxScore ? parseInt(maxScore, 10) : undefined;
+
+    return baseFiltered.filter(c => {
+      const t = new Date(c.updated_at).getTime();
+      if (fromTs && t < fromTs) return false;
+      if (toTs && t > toTs) return false;
+      if (typeof minS === 'number' && (c.seo_score ?? -1) < minS) return false;
+      if (typeof maxS === 'number' && (c.seo_score ?? 101) > maxS) return false;
+      // Word count & TOC/FAQ from content body
+      const html = String(c.content_body || '');
+      const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      const toc = /mục lục|table of contents|id=\"muc-luc\"/i.test(html);
+      const faq = /<h2[^>]*>\s*FAQ\s*<\/h2>/i.test(html) || /FAQ/i.test(html);
+      if (typeof minW === 'number' && words < minW) return false;
+      if (typeof maxW === 'number' && words > maxW) return false;
+      if (hasTOC && !toc) return false;
+      if (hasFAQ && !faq) return false;
+      return true;
+    });
+  }, [baseFiltered, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ]);
+
+  const filteredContents = useMemo(() => {
     const q = searchTerm.trim();
-    if (q.length < 2) return baseFiltered;
+    if (q.length < 2) return advancedFiltered;
     // Fuzzy rank by title, content_body (text), target_keywords
-    const list = baseFiltered.map((c) => ({
+    const list = advancedFiltered.map((c) => ({
       id: c.id,
       title: c.title || '',
       content: String(c.content_body || ''),
@@ -55,9 +105,9 @@ export default function ContentLibrary() {
     }));
     const ids = simpleFuzzySearch(q, list, { titleBoost: 3, keywordBoost: 2, contentBoost: 1 });
     const map = new Map(ids.map((id, idx) => [id, idx]));
-    const result = baseFiltered.filter((c) => map.has(c.id)).sort((a, b) => (map.get(a.id)! - map.get(b.id)!));
+    const result = advancedFiltered.filter((c) => map.has(c.id)).sort((a, b) => (map.get(a.id)! - map.get(b.id)!));
     return result;
-  })();
+  }, [advancedFiltered, searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -123,8 +173,53 @@ export default function ContentLibrary() {
   useEffect(() => {
     // Tự động tải danh sách nội dung (local mode dùng 'test-user' làm mặc định)
     const uid = (user as any)?.id || 'test-user';
-    fetchContents(currentProject?.id, uid);
-  }, [currentProject, user]);
+    const pid = projectFilter === 'all' ? undefined : (projectFilter === 'current' ? currentProject?.id : projectFilter);
+    fetchContents(pid, uid);
+  }, [currentProject, user, projectFilter]);
+
+  // Initialize from URL params on first render
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const st = searchParams.get('status') || 'all';
+    const pj = searchParams.get('project') || 'current';
+    const df = searchParams.get('from') || '';
+    const dt = searchParams.get('to') || '';
+    const minw = searchParams.get('minWords') || '';
+    const maxw = searchParams.get('maxWords') || '';
+    const mins = searchParams.get('minScore') || '';
+    const maxs = searchParams.get('maxScore') || '';
+    const toc = searchParams.get('toc') === '1';
+    const faq = searchParams.get('faq') === '1';
+    setSearchTerm(q);
+    setStatusFilter(st);
+    setProjectFilter(pj);
+    setDateFrom(df);
+    setDateTo(dt);
+    setMinWords(minw);
+    setMaxWords(maxw);
+    setMinScore(mins);
+    setMaxScore(maxs);
+    setHasTOC(toc);
+    setHasFAQ(faq);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (searchTerm) params.q = searchTerm;
+    if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+    if (projectFilter && projectFilter !== 'current') params.project = projectFilter;
+    if (dateFrom) params.from = dateFrom;
+    if (dateTo) params.to = dateTo;
+    if (minWords) params.minWords = minWords;
+    if (maxWords) params.maxWords = maxWords;
+    if (minScore) params.minScore = minScore;
+    if (maxScore) params.maxScore = maxScore;
+    if (hasTOC) params.toc = '1';
+    if (hasFAQ) params.faq = '1';
+    setSearchParams(params);
+  }, [searchTerm, statusFilter, projectFilter, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ]);
 
   if (loading) {
     return (
@@ -180,7 +275,7 @@ export default function ContentLibrary() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" data-testid="library-filter-status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -190,6 +285,64 @@ export default function ContentLibrary() {
               <SelectItem value="archived">Lưu trữ</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-40" data-testid="library-filter-project">
+              <SelectValue placeholder="Dự án" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current">Dự án hiện tại{currentProject ? `: ${currentProject.name}` : ''}</SelectItem>
+              <SelectItem value="all">Tất cả dự án</SelectItem>
+              {projects && projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" data-testid="library-filter-toggle">
+            <Filter className="h-4 w-4 mr-1" /> Bộ lọc
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 p-3 border rounded-md bg-muted/30" data-testid="library-filter-panel">
+        <div>
+          <label className="text-xs text-muted-foreground">Từ ngày</label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} data-testid="library-filter-from" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Đến ngày</label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} data-testid="library-filter-to" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Số từ tối thiểu</label>
+          <Input type="number" min={0} placeholder="min" value={minWords} onChange={(e) => setMinWords(e.target.value)} data-testid="library-filter-minwords" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Số từ tối đa</label>
+          <Input type="number" min={0} placeholder="max" value={maxWords} onChange={(e) => setMaxWords(e.target.value)} data-testid="library-filter-maxwords" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">SEO score tối thiểu</label>
+          <Input type="number" min={0} max={100} placeholder="min" value={minScore} onChange={(e) => setMinScore(e.target.value)} data-testid="library-filter-minscore" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">SEO score tối đa</label>
+          <Input type="number" min={0} max={100} placeholder="max" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} data-testid="library-filter-maxscore" />
+        </div>
+        <div className="col-span-1 flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Checkbox id="has-toc" checked={hasTOC} onCheckedChange={(v) => setHasTOC(Boolean(v))} data-testid="library-filter-toc" />
+            <label htmlFor="has-toc" className="text-sm">Có TOC</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox id="has-faq" checked={hasFAQ} onCheckedChange={(v) => setHasFAQ(Boolean(v))} data-testid="library-filter-faq" />
+            <label htmlFor="has-faq" className="text-sm">Có FAQ</label>
+          </div>
+        </div>
+        <div className="col-span-1 md:col-span-2 lg:col-span-6 flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => {
+            setSearchTerm(''); setStatusFilter('all'); setProjectFilter('current'); setDateFrom(''); setDateTo(''); setMinWords(''); setMaxWords(''); setMinScore(''); setMaxScore(''); setHasTOC(false); setHasFAQ(false);
+          }} data-testid="library-filter-clear">Xóa bộ lọc</Button>
         </div>
       </div>
 

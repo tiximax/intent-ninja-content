@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.5 (2025-09-21)
+
+Stable release promoted from v0.6.5-rc1. No changes since RC1.
+
+Highlights:
+- Content Library: body-contains filter + title-only toggle; URL persisted (?body=, ?titleOnly=1); E2E added.
+- Observability: Sentry breadcrumbs for generate-content (start/success/failure/expansion).
+- Compatible with v0.6.4 features (Smart Filters, Voice Search, requestId passthrough, Sentry base).
+
 ## v0.6.5-rc1 (2025-09-21)
 
 Pre-release (RC) changes:

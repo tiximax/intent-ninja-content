@@ -185,7 +185,8 @@ async function fetchWithTimeout(resource: string | URL, options: RequestInit & {
 }
 
 serve(async (req) => {
-  const reqId = (globalThis.crypto?.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random()}`;
+  const hdrReqId = req.headers.get('x-request-id') || req.headers.get('x-requestid') || '';
+  const reqId = hdrReqId || ((globalThis.crypto?.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random()}`);
   log('info', 'generate_content_request_received', { reqId });
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -373,14 +374,14 @@ const res = await fetchWithTimeout(url, {
           const j = await r.json();
           let raw = j.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
           const parsed = JSON.parse(raw);
-          return new Response(JSON.stringify({ success: true, sectionHtml: parsed.sectionHtml, timestamp: new Date().toISOString() }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+return new Response(JSON.stringify({ success: true, sectionHtml: parsed.sectionHtml, timestamp: new Date().toISOString(), requestId: reqId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
       } catch (e) {
         log('warn', 'regenerate_section_failed', { error: String(e) });
         let hint = 'Nội dung chi tiết với ví dụ và bước hành động.';
         if (regenerateAction === 'cta') hint = '<p><a href="#" style="display:inline-block;padding:8px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none">Đăng ký ngay</a></p><ul><li>Lý do 1</li><li>Lý do 2</li></ul>';
         const fallbackHtml = `<h2 id=\"${slug}\">${sec}</h2>${hint}`;
-        return new Response(JSON.stringify({ success: true, sectionHtml: fallbackHtml, timestamp: new Date().toISOString() }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+return new Response(JSON.stringify({ success: true, sectionHtml: fallbackHtml, timestamp: new Date().toISOString(), requestId: reqId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
 
@@ -639,20 +640,21 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
       return resp;
     })();
 
-    const response = normalized;
+const response = { ...normalized, requestId: reqId };
 
-    log('info', 'generate_content_success', { reqId });
-    return new Response(JSON.stringify(response), {
+log('info', 'generate_content_success', { reqId });
+return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     log('error', 'generate_content_unhandled_error', { error: String(error) });
-    return new Response(
+return new Response(
       JSON.stringify({ 
         error: 'Content generation failed', 
-        details: error.message,
-        success: false 
+        details: (error as any).message,
+        success: false,
+        requestId: (req as any)?.headers?.get?.('x-request-id') || undefined 
       }),
       {
         status: 500,

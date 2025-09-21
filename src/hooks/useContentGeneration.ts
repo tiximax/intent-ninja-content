@@ -148,6 +148,15 @@ export const useContentGeneration = () => {
     cancelExpansionRef.current = false;
     setIsExpanding(false);
 
+    const genReqId = () => {
+      try {
+        // @ts-ignore
+        if (typeof crypto !== 'undefined' && crypto?.randomUUID) return crypto.randomUUID();
+      } catch {}
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+    const requestId = genReqId();
+
     // Hiển thị loading toast và lấy id để cập nhật sau
     const loadingToastId = enhancedToast.content.start();
 
@@ -171,6 +180,7 @@ export const useContentGeneration = () => {
         async () => {
           const { data, error } = await supabase.functions.invoke('generate-content', {
             body: request,
+            headers: { 'x-request-id': requestId },
           });
           
           if (error) {
@@ -255,6 +265,7 @@ export const useContentGeneration = () => {
                   title: `${request.title} — Phần mở rộng #${attempt + 1}`,
                   outline: plan,
                 },
+                headers: { 'x-request-id': `${requestId}-exp-${attempt + 1}` },
               });
               if (expError || !expData?.content?.content) break;
 

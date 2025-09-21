@@ -45,6 +45,6 @@ test('create project, generate mock content and save', async ({ page }) => {
   const saveBtn = page.getByRole('button', { name: /Lưu nội dung|Đang lưu/i });
   await saveBtn.click();
 
-  // Toast thành công
-  await expect(page.getByText('Đã lưu thành công')).toBeVisible();
+  // Toast thành công (ổn định theo data-testid)
+  await expect(page.getByTestId('toast-data-save-success')).toBeVisible();
 });

@@ -189,10 +189,11 @@ export const showEnhancedToast = (options: EnhancedToastOptions) => {
     recentToasts.set(key, now);
   }
 
+  const testId = `toast-${context}-${type}`;
   const toastConfig: any = {
     id,
     description: (
-      <div className="flex items-start gap-3 w-full">
+      <div className="flex items-start gap-3 w-full" data-testid={testId} data-toast-id={id ?? ''}>
         <div className="flex items-center gap-2 flex-shrink-0">
           {ContextIcon && <ContextIcon className="h-4 w-4 opacity-70" />}
           <Icon className={`h-4 w-4 ${

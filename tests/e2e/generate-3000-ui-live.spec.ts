@@ -27,9 +27,9 @@ test('live UI generate reaches minimum 3000 words via orchestrator', async ({ pa
   // Submit
   await page.getByRole('button', { name: /Tạo nội dung AI/i }).click();
 
-  // Wait for expansion progress toast then final success
-  await expect(page.locator('text=Đang mở rộng nội dung')).toBeVisible({ timeout: 30_000 });
+  // Wait for expansion progress toast then final success (ổn định theo data-testid)
+  await expect(page.getByTestId('toast-content-generation-loading')).toBeVisible({ timeout: 30_000 });
 
   // Wait up to 3 minutes for completion (orchestrator loops up to 8 rounds depending on backend)
-  await expect(page.locator('text=Đã đạt tối thiểu')).toBeVisible({ timeout: 180_000 });
+  await expect(page.getByTestId('toast-content-generation-success')).toBeVisible({ timeout: 180_000 });
 });

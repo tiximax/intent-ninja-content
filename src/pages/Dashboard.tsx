@@ -143,7 +143,10 @@ export default function Dashboard() {
         language: formData.language || draft.language || "vi",
         tone: formData.tone || draft.tone || "professional",
         wordCount: formData.wordCount || draft.wordCount || 1000,
-        outline: draft.outline && Array.isArray(draft.outline) && draft.outline.length ? draft.outline : undefined
+        outline: draft.outline && Array.isArray(draft.outline) && draft.outline.length ? draft.outline : undefined,
+        brandVoicePreset: formData.brandVoicePreset || draft.brandVoicePreset,
+        brandCustomStyle: formData.brandCustomStyle || draft.brandCustomStyle,
+        sectionDepth: (formData.sectionDepth || draft.sectionDepth) as any,
       });
       
       setShowResults(true);

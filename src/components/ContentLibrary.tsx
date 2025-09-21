@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -31,6 +32,8 @@ export default function ContentLibrary() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   const filteredContents = contents.filter(content => {
     const matchesSearch = content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,11 +119,41 @@ export default function ContentLibrary() {
     );
   }
 
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const set = new Set(prev);
+      if (checked) set.add(id); else set.delete(id);
+      return Array.from(set);
+    });
+  };
+
+  const getStats = (htmlOrText: string) => {
+    const html = String(htmlOrText || '');
+    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const h2Count = (html.match(/<h2\b/gi) || []).length;
+    const h3Count = (html.match(/<h3\b/gi) || []).length;
+    const hasTOC = /mục lục|table of contents|id=\"muc-luc\"/i.test(html);
+    const hasFAQ = /<h2[^>]*>\s*FAQ\s*<\/h2>/i.test(html) || /FAQ/i.test(html);
+    return { words, h2Count, h3Count, hasTOC, hasFAQ };
+  };
+
+  const selectedContents = filteredContents.filter(c => selectedIds.includes(c.id));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Thư viện nội dung</h2>
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={selectedIds.length < 2}
+            onClick={() => setIsCompareOpen(true)}
+            data-testid="compare-open"
+          >
+            So sánh ({selectedIds.length})
+          </Button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -192,6 +225,12 @@ export default function ContentLibrary() {
                 )}
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={selectedIds.includes(content.id)}
+                    onCheckedChange={(v) => toggleSelect(content.id, Boolean(v))}
+                    data-testid={`select-content-${content.id}`}
+                    className="mr-2"
+                  />
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>{new Date(content.updated_at).toLocaleDateString('vi-VN')}</span>
@@ -314,6 +353,50 @@ export default function ContentLibrary() {
                 </Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Compare Dialog */}
+      <Dialog open={isCompareOpen} onOpenChange={setIsCompareOpen}>
+        <DialogContent className="max-w-4xl" data-testid="compare-dialog">
+          <DialogHeader>
+            <DialogTitle>So sánh nội dung ({selectedContents.length})</DialogTitle>
+          </DialogHeader>
+          {selectedContents.length >= 2 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Tiêu đề</th>
+                    <th className="text-left p-2">Số từ</th>
+                    <th className="text-left p-2">H2</th>
+                    <th className="text-left p-2">H3</th>
+                    <th className="text-left p-2">TOC</th>
+                    <th className="text-left p-2">FAQ</th>
+                    <th className="text-left p-2">SEO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedContents.map((c) => {
+                    const s = getStats(c.content_body);
+                    return (
+                      <tr key={c.id} data-testid={`compare-row-${c.id}`} className="border-t">
+                        <td className="p-2 max-w-[260px] truncate" title={c.title}>{c.title}</td>
+                        <td className="p-2">{s.words}</td>
+                        <td className="p-2">{s.h2Count}</td>
+                        <td className="p-2">{s.h3Count}</td>
+                        <td className="p-2">{s.hasTOC ? 'Có' : 'Không'}</td>
+                        <td className="p-2">{s.hasFAQ ? 'Có' : 'Không'}</td>
+                        <td className="p-2">{typeof c.seo_score === 'number' ? `${c.seo_score}%` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Chọn ít nhất 2 nội dung để so sánh.</p>
           )}
         </DialogContent>
       </Dialog>

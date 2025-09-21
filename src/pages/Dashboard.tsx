@@ -147,6 +147,7 @@ export default function Dashboard() {
         tone: formData.tone || draft.tone || "professional",
         wordCount: formData.wordCount || draft.wordCount || 1000,
         outline: draft.outline && Array.isArray(draft.outline) && draft.outline.length ? draft.outline : undefined,
+        strictOutline: (draft.outline && Array.isArray(draft.outline) && draft.outline.length) ? true : false,
         brandVoicePreset: formData.brandVoicePreset || draft.brandVoicePreset,
         brandCustomStyle: formData.brandCustomStyle || draft.brandCustomStyle,
         sectionDepth: (formData.sectionDepth || draft.sectionDepth) as any,

@@ -16,6 +16,7 @@ interface ContentRequest {
     confidence: number;
   }>;
   outline?: string[];
+  strictOutline?: boolean;
   brandVoicePreset?: string;
   brandCustomStyle?: string;
   sectionDepth?: 'basic' | 'standard' | 'deep';

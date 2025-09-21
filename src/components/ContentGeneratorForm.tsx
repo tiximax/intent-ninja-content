@@ -124,6 +124,7 @@ export default function ContentGeneratorForm() {
       tone,
       wordCount: wordCount[0],
       outline: outline.length ? outline : undefined,
+      strictOutline: outline.length > 0,
       brandVoicePreset: brandVoice,
       brandCustomStyle: brandCustom,
       sectionDepth: sectionDepth as any,
@@ -436,7 +437,8 @@ export default function ContentGeneratorForm() {
                   language,
                   tone,
                   wordCount: wordCount[0],
-                  outline: outline
+                  outline: outline,
+                  strictOutline: true
                 });
               }}
               disabled={isGenerating || outline.length === 0}

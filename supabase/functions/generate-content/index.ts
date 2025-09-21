@@ -29,6 +29,7 @@ interface ContentRequest {
     confidence: number;
   }>;
   outline?: string[]; // optional custom outline (H2/H3 headings)
+  strictOutline?: boolean; // when true, generate strictly per outline (no extra H2), per-section
   brandVoicePreset?: string;
   brandCustomStyle?: string;
   sectionDepth?: 'basic' | 'standard' | 'deep';
@@ -326,7 +327,8 @@ const res = await fetchWithTimeout(url, {
     // Step 2: Generate content based on intent analysis
     log('info', 'generate_content_start', { reqId, primaryIntent: intentAnalysis.primaryIntent });
 
-    const customOutline = Array.isArray(outline) && outline.length > 0 ? `\nCustom Outline (use EXACTLY these as H2/H3):\n${outline.map((h, i) => `${i+1}. ${h}`).join('\n')}` : '';
+const customOutline = Array.isArray(outline) && outline.length > 0 ? `\nCustom Outline (use EXACTLY these as H2/H3):\n${outline.map((h, i) => `${i+1}. ${h}`).join('\n')}` : '';
+const isStrictOutlineMode = Array.isArray(outline) && outline.length > 0 && Boolean(requestData.strictOutline);
     const depthMap: Record<string, string> = { basic: '1–2', standard: '2–3', deep: '3–5' };
     const paragraphsPerSection = depthMap[sectionDepth] || '2–3';
     const brandVoiceText = `${brandVoicePreset ? `\nBrand voice preset: ${brandVoicePreset}.` : ''}${brandCustomStyle ? `\nBrand guidelines: ${brandCustomStyle}.` : ''}`;
@@ -429,7 +431,7 @@ Return ONLY valid JSON exactly as:
 }
 Do not include code fences or commentary.`;
 
-    let generatedContent: {
+let generatedContent: {
       title: string;
       metaDescription: string;
       content: string;
@@ -437,6 +439,74 @@ Do not include code fences or commentary.`;
       keywordDensity: string;
       seoScore: number;
     } | undefined;
+
+    // Strict outline mode: generate per section and assemble, avoiding extra headings
+    if (isStrictOutlineMode) {
+      try {
+        const sections: string[] = [];
+        for (const sec of outline) {
+          const heading = String(sec || '').trim();
+          if (!heading) continue;
+          const slug = heading.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+          const sectionPrompt = `Write HTML content ONLY for the section heading: "${heading}".\nLanguage: ${language}. Tone: ${tone}.${brandVoiceText}\nFor this section, write ${paragraphsPerSection} paragraphs of concrete, helpful information with examples and action steps.\nReturn ONLY valid JSON as: { "sectionHtml": "<h2 id=\"${slug}\">${heading}</h2>..." }`;
+
+          if (!fallbackOnly && openAIApiKey) {
+            const r = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${openAIApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  { role: 'system', content: 'Return only valid JSON.' },
+                  { role: 'user', content: sectionPrompt }
+                ],
+                temperature: 0.4,
+                max_tokens: 800
+              }),
+            });
+            if (!r.ok) throw new Error(await r.text());
+            const j = await r.json();
+            let raw = j.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(raw);
+            sections.push(parsed.sectionHtml);
+          } else if (!fallbackOnly && geminiApiKey) {
+            const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
+            const res = await fetchWithTimeout(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: sectionPrompt }] }] })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            sections.push(parsed.sectionHtml);
+          } else {
+            // Fallback: minimal section
+            sections.push(`<h2 id=\"${slug}\">${heading}</h2><p>Nội dung chi tiết theo outline.</p>`);
+          }
+        }
+
+        const h1 = title || 'Nội dung SEO';
+        const body = `<h1>${h1}</h1>\n${sections.join('\n')}`;
+        const meta = (`Bài viết theo outline về ${h1}`).slice(0, 160);
+        generatedContent = {
+          title: h1,
+          metaDescription: meta,
+          content: body,
+          headings: [h1, ...outline],
+          keywordDensity: (keywords && keywords[0]) ? String(keywords[0]) : '1.5%',
+          seoScore: 86
+        };
+      } catch (e) {
+        log('warn', 'strict_outline_generation_failed', { reqId, error: String(e) });
+        // fallback to normal path below
+      }
+    }
+
+    if (!generatedContent) {
 
     try {
       // Prefer OpenAI if available; fallback to Gemini; if none, skip API call and go to fallback
@@ -611,7 +681,7 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
           /* noop */
         }
       };
-      ensureIntentFeatures();
+      if (!isStrictOutlineMode) ensureIntentFeatures();
 
       // Ensure headings 4..10 by deriving from HTML if needed
       const deriveHeads = () => {

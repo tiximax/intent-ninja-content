@@ -12,10 +12,12 @@ import { IntentAnalysisCard } from "@/components/IntentAnalysisCard";
 import { SeoScoreCard } from "@/components/SeoScoreCard";
 // Lazy-loaded heavy components
 const ContentExporterLazy = lazy(() => import("@/components/ContentExporter").then(m => ({ default: m.ContentExporter })));
-import SeoMetaSchema from "@/components/SeoMetaSchema";
-import { ContentPreview } from "@/components/ContentPreview";
+// Lazy-loaded heavy components
+const SeoMetaSchemaLazy = lazy(() => import("@/components/SeoMetaSchema").then(m => ({ default: m.default })));
+const SeoScoreCardLazy = lazy(() => import("@/components/SeoScoreCard").then(m => ({ default: m.SeoScoreCard })));
+const ContentLibraryLazy = lazy(() => import("@/components/ContentLibrary").then(m => ({ default: m.default })));
 const CompetitorAnalysisLazy = lazy(() => import("@/components/CompetitorAnalysis").then(m => ({ default: m.CompetitorAnalysis })));
-import ContentLibrary from "@/components/ContentLibrary";
+import { ContentPreview } from "@/components/ContentPreview";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { useContentGeneration } from "@/hooks/useContentGeneration";
 import { useContentManager } from "@/hooks/useContentManager";
@@ -251,9 +253,9 @@ export default function Dashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="create">Tạo nội dung</TabsTrigger>
-            <TabsTrigger value="library">Thư viện</TabsTrigger>
-            <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+            <TabsTrigger value="create" onMouseEnter={() => { import("@/components/ContentGeneratorForm"); }}>Tạo nội dung</TabsTrigger>
+            <TabsTrigger value="library" onMouseEnter={() => { import("@/components/ContentLibrary"); }}>Thư viện</TabsTrigger>
+            <TabsTrigger value="analytics" onMouseEnter={() => { import("@/components/CompetitorAnalysis"); }}>Phân tích</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -350,30 +352,36 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <ContentPreview
-                    content={generatedContent?.content || ''}
-                    title="Nội dung đã tạo"
-                    keywords={generatedContent?.keywordDensity ? [generatedContent.keywordDensity] : []}
-                    isEditable={true}
-                    onContentChange={(content) => {
-                      if (generatedContent) {
-                        // Update generated content
-                      }
-                    }}
-                  />
-                  
-                  <div className="space-y-6">
-                    <SeoScoreCard
+                  <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
+                    <ContentPreview
                       content={generatedContent?.content || ''}
-                      title="Phân tích SEO"
+                      title="Nội dung đã tạo"
                       keywords={generatedContent?.keywordDensity ? [generatedContent.keywordDensity] : []}
+                      isEditable={true}
+                      onContentChange={(content) => {
+                        if (generatedContent) {
+                          // Update generated content
+                        }
+                      }}
                     />
+                  </div>
+                  
+                  <div className="space-y-6" style={{ contentVisibility: 'auto', containIntrinsicSize: '900px' }}>
+                    <Suspense fallback={<CardLoadingState />}>
+                      <SeoScoreCardLazy
+                        content={generatedContent?.content || ''}
+                        title="Phân tích SEO"
+                        keywords={generatedContent?.keywordDensity ? [generatedContent.keywordDensity] : []}
+                      />
+                    </Suspense>
 
-                    <SeoMetaSchema
-                      title={generatedContent?.title || ''}
-                      metaDescription={generatedContent?.metaDescription || ''}
-                      contentHtml={generatedContent?.content || ''}
-                    />
+                    <Suspense fallback={<CardLoadingState />}>
+                      <SeoMetaSchemaLazy
+                        title={generatedContent?.title || ''}
+                        metaDescription={generatedContent?.metaDescription || ''}
+                        contentHtml={generatedContent?.content || ''}
+                      />
+                    </Suspense>
                     
 <Suspense fallback={<CardLoadingState />}>
                       <ContentExporterLazy
@@ -393,7 +401,9 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="library" className="space-y-6">
-            <ContentLibrary />
+            <Suspense fallback={<CardLoadingState />}>
+              <ContentLibraryLazy />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

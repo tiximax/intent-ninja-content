@@ -745,3 +745,34 @@ Next (đề xuất):
   - Nếu có outline: giữ NGUYÊN heading H2/H3 như đã cung cấp. Nếu không có: dùng cấu trúc mặc định (Intro, Main sections, FAQ ≥ 3, Conclusion).
   - Hỗ trợ brandVoicePreset/brandCustomStyle; trả JSON chuẩn: title, metaDescription ≤160, content HTML, headings (4–10), keywordDensity, seoScore.
 - Orchestrator tối thiểu số từ (frontend) tự động mở rộng đến khi đạt wordCount, có toast tiến trình và nút dừng.
+
+---
+
+## Đóng Phase hiện tại – Mốc Stable v0.6.2 (2025-09-21)
+
+Trạng thái tổng thể:
+- Ổn định (Stable). Không có lỗi known-blocker.
+- Phát hành: v0.6.2 – https://github.com/tiximax/intent-ninja-content/releases/tag/v0.6.2
+- E2E (mock): 63 passed, 1 skipped (bỏ qua live theo mặc định).
+- Mobile responsiveness: 20/20 passed.
+- Live orchestrator 3000 từ: PASSED qua GitHub Actions (E2E Live – Manual).
+- CI:
+  - Nightly (mock) đã bật: .github/workflows/e2e-nightly.yml
+  - Live (manual) có thể chạy theo nhu cầu: .github/workflows/e2e-live.yml
+- README đã có badges: Release, E2E Nightly, E2E Live.
+
+Phạm vi đã hoàn thành (tóm tắt):
+- Content Generation: prompt đầy đủ; orchestrator tối thiểu số từ + Cancel; regenerate per section + undo/redo + diff modal; brand voice presets/industry; section depth.
+- SEO & Export: SEO Meta & Schema (Article + FAQ), Export HTML có OG/Twitter + JSON‑LD.
+- UX/Resilience: Enhanced error messages (FormError), enhanced-toast (context-aware, data-testid), Error Boundaries, standardized loading states, retry/backoff.
+- Edge Functions: generate-content (OpenAI/Gemini + fallback), regenerate section.
+- Kiểm thử & CI: E2E ổn định; live UI orchestrator pass; CI nightly + live manual; badges README.
+
+Backlog (tùy chọn, không chặn):
+- Bật live tests theo lịch (cần secrets CI: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
+- Theo dõi/Monitoring (Sentry), tối ưu bundle, code splitting nâng cao.
+- Tinh chỉnh nhỏ UX copy/toasts nếu cần.
+
+Cách mở lại phase:
+- Tạo yêu cầu (issue/task) hoặc phản hồi trực tiếp nội dung cần triển khai.
+- Nếu cần tích hợp/đổi lớn (UI/luồng), vui lòng duyệt trước theo rule đã đặt.

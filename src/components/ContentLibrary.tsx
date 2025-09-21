@@ -46,6 +46,8 @@ export default function ContentLibrary() {
   const [hasTOC, setHasTOC] = useState<boolean>(false);
   const [hasFAQ, setHasFAQ] = useState<boolean>(false);
   const [kwContains, setKwContains] = useState<string>('');
+  const [bodyContains, setBodyContains] = useState<string>('');
+  const [titleOnly, setTitleOnly] = useState<boolean>(false);
 
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -134,13 +136,38 @@ export default function ContentLibrary() {
         const hit = arr.some((k: string) => String(k || '').toLowerCase().includes(kw));
         if (!hit) return false;
       }
+      if (bodyContains) {
+        const needle = String(bodyContains).toLowerCase();
+        const normalizedText = text.toLowerCase();
+        if (!normalizedText.includes(needle)) return false;
+      }
       return true;
     });
-  }, [baseFiltered, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains]);
+  }, [baseFiltered, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains, bodyContains]);
 
   const filteredContents = useMemo(() => {
     const q = searchTerm.trim();
     if (q.length < 2) return advancedFiltered;
+
+    if (titleOnly) {
+      const norm = (s: string) => s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const tokens = Array.from(new Set(norm(q).split(' ').filter(Boolean)));
+      const scored = advancedFiltered.map(c => {
+        const t = norm(c.title || '');
+        let score = 0;
+        for (const tok of tokens) { if (t.includes(tok)) score += 1; }
+        return { id: c.id, score };
+      }).filter(s => s.score > 0).sort((a,b)=>b.score-a.score);
+      const order = new Map(scored.map((s, i) => [s.id, i]));
+      return advancedFiltered.filter(c => order.has(c.id)).sort((a,b)=> (order.get(a.id)! - order.get(b.id)!));
+    }
+
     // Fuzzy rank by title, content_body (text), target_keywords
     const list = advancedFiltered.map((c) => ({
       id: c.id,
@@ -153,7 +180,7 @@ export default function ContentLibrary() {
     const map = new Map(ids.map((id, idx) => [id, idx]));
     const result = advancedFiltered.filter((c) => map.has(c.id)).sort((a, b) => (map.get(a.id)! - map.get(b.id)!));
     return result;
-  }, [advancedFiltered, searchTerm]);
+  }, [advancedFiltered, searchTerm, titleOnly]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -237,6 +264,8 @@ export default function ContentLibrary() {
     const toc = searchParams.get('toc') === '1';
     const faq = searchParams.get('faq') === '1';
     const kw = searchParams.get('kw') || '';
+    const body = searchParams.get('body') || '';
+    const tonly = searchParams.get('titleOnly') === '1';
     setSearchTerm(q);
     setStatusFilter(st);
     setProjectFilter(pj);
@@ -249,6 +278,8 @@ export default function ContentLibrary() {
     setHasTOC(toc);
     setHasFAQ(faq);
     setKwContains(kw);
+    setBodyContains(body);
+    setTitleOnly(tonly);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -267,8 +298,10 @@ export default function ContentLibrary() {
     if (hasTOC) params.toc = '1';
     if (hasFAQ) params.faq = '1';
     if (kwContains) params.kw = kwContains;
+    if (bodyContains) params.body = bodyContains;
+    if (titleOnly) params.titleOnly = '1';
     setSearchParams(params);
-  }, [searchTerm, statusFilter, projectFilter, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains]);
+  }, [searchTerm, statusFilter, projectFilter, dateFrom, dateTo, minWords, maxWords, minScore, maxScore, hasTOC, hasFAQ, kwContains, bodyContains, titleOnly]);
 
   if (loading) {
     return (
@@ -403,6 +436,10 @@ export default function ContentLibrary() {
           <label className="text-xs text-muted-foreground">Keyword chứa</label>
           <Input type="text" placeholder="iphone, canon..." value={kwContains} onChange={(e) => setKwContains(e.target.value)} data-testid="library-filter-kw" />
         </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Nội dung chứa</label>
+          <Input type="text" placeholder="từ khóa trong nội dung..." value={bodyContains} onChange={(e) => setBodyContains(e.target.value)} data-testid="library-filter-body" />
+        </div>
         <div className="col-span-1 flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Checkbox id="has-toc" checked={hasTOC} onCheckedChange={(v) => setHasTOC(Boolean(v))} data-testid="library-filter-toc" />
@@ -412,10 +449,14 @@ export default function ContentLibrary() {
             <Checkbox id="has-faq" checked={hasFAQ} onCheckedChange={(v) => setHasFAQ(Boolean(v))} data-testid="library-filter-faq" />
             <label htmlFor="has-faq" className="text-sm">Có FAQ</label>
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox id="title-only" checked={titleOnly} onCheckedChange={(v) => setTitleOnly(Boolean(v))} data-testid="library-filter-title-only" />
+            <label htmlFor="title-only" className="text-sm">Chỉ tìm tiêu đề</label>
+          </div>
         </div>
         <div className="col-span-1 md:col-span-2 lg:col-span-6 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={() => {
-            setSearchTerm(''); setStatusFilter('all'); setProjectFilter('current'); setDateFrom(''); setDateTo(''); setMinWords(''); setMaxWords(''); setMinScore(''); setMaxScore(''); setHasTOC(false); setHasFAQ(false); setKwContains('');
+            setSearchTerm(''); setStatusFilter('all'); setProjectFilter('current'); setDateFrom(''); setDateTo(''); setMinWords(''); setMaxWords(''); setMinScore(''); setMaxScore(''); setHasTOC(false); setHasFAQ(false); setKwContains(''); setBodyContains(''); setTitleOnly(false);
           }} data-testid="library-filter-clear">Xóa bộ lọc</Button>
         </div>
       </div>

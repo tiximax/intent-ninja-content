@@ -7,6 +7,27 @@
 
 ---
 
+## Observability & Sentry
+
+Sentry is integrated in the frontend (disabled in E2E/mock). To enable it in production:
+
+- Required env vars (at build/runtime for Vite):
+  - VITE_SENTRY_DSN={{YOUR_SENTRY_DSN}}
+  - optional: VITE_SENTRY_ENV=production
+
+- Where to set:
+  - GitHub repo secrets (if you build via CI) or your hosting provider (Vercel/Netlify/etc.).
+
+- With GitHub CLI (replace placeholders accordingly):
+  - gh secret set VITE_SENTRY_DSN -b"{{YOUR_SENTRY_DSN}}"
+  - gh secret set VITE_SENTRY_ENV -b"production"
+
+- Notes:
+  - Sentry is initialized in src/observability/sentry.ts and auto-disabled when VITE_E2E_TEST_MODE=true.
+  - After content generation, the app tags Sentry scope with requestId so you can correlate with Edge Function logs.
+  - Tracing uses Browser Tracing integration with tracesSampleRate=0.1 (adjust as needed).
+  - Be mindful of PII when sending events.
+
 # Supabase CLI
 
 [![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)

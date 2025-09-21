@@ -1,6 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { initSentry } from './observability/sentry';
+
+// Initialize Sentry (no-op if DSN missing or E2E test mode)
+initSentry();
 
 // Runtime preconnect/dns-prefetch to Supabase (if configured)
 try {

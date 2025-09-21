@@ -230,6 +230,12 @@ export const useContentGeneration = () => {
       setIntentAnalysis(data.intentAnalysis);
       setGeneratedContent(data.content);
 
+      try {
+        const reqId = (data as any)?.requestId;
+        const { setSentryRequestId } = await import('@/observability/sentry');
+        setSentryRequestId(reqId);
+      } catch {}
+
       // Ensure minimum words by orchestrating expansions when backend returns short content
       try {
         const targetWords = request.wordCount || 0;

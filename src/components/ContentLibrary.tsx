@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { simpleFuzzySearch } from '@/lib/simple-fuzzy';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -35,14 +36,28 @@ export default function ContentLibrary() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-  const filteredContents = contents.filter(content => {
-    const matchesSearch = content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         content.content_body.toLowerCase().includes(searchTerm.toLowerCase());
+  const baseFiltered = contents.filter(content => {
     const matchesStatus = statusFilter === 'all' || content.status === statusFilter;
     const matchesProject = !currentProject || content.project_id === currentProject.id;
-    
-    return matchesSearch && matchesStatus && matchesProject;
+    return matchesStatus && matchesProject;
   });
+
+  const filteredContents = (() => {
+    const q = searchTerm.trim();
+    if (q.length < 2) return baseFiltered;
+    // Fuzzy rank by title, content_body (text), target_keywords
+    const list = baseFiltered.map((c) => ({
+      id: c.id,
+      title: c.title || '',
+      content: String(c.content_body || ''),
+      keywords: Array.isArray(c.target_keywords) ? c.target_keywords : [],
+      _raw: c,
+    }));
+    const ids = simpleFuzzySearch(q, list, { titleBoost: 3, keywordBoost: 2, contentBoost: 1 });
+    const map = new Map(ids.map((id, idx) => [id, idx]));
+    const result = baseFiltered.filter((c) => map.has(c.id)).sort((a, b) => (map.get(a.id)! - map.get(b.id)!));
+    return result;
+  })();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -161,6 +176,7 @@ export default function ContentLibrary() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-64"
+              data-testid="library-search"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -195,7 +211,7 @@ export default function ContentLibrary() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredContents.map((content) => (
-            <Card key={content.id} className="hover:shadow-md transition-shadow">
+            <Card key={content.id} className="hover:shadow-md transition-shadow" data-testid="library-card">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg line-clamp-2">{content.title}</CardTitle>

@@ -384,37 +384,38 @@ const res = await fetchWithTimeout(url, {
       }
     }
 
-    const contentPrompt = `Create SEO-optimized content for: "${title}"
+    const contentPrompt = `Create an SEO-optimized HTML ARTICLE for: "${title}"
 
 Primary Intent: ${intentAnalysis.primaryIntent}
 Target Keywords: ${[title, ...keywords, ...intentAnalysis.keywordClusters].join(', ')}
 Language: ${language}
 Tone: ${tone}
-Word Count: ${wordCount} words
+Target Word Count: ${wordCount}
 ${customOutline}
 
-CRITICAL WRITING REQUIREMENTS:
-- Write FULL content, not an outline.
-- For EACH H2/H3 section, write ${paragraphsPerSection} paragraphs of concrete, helpful information (not placeholders), include examples, tips, and action steps.
-- Keep headings EXACTLY as provided in Custom Outline (if present). Do not add extra H2 that are not in the outline.
+WRITING DIRECTIVES (MANDATORY):
+- Produce a FULL ARTICLE, not an outline.
+- Output HTML only in the "content" field; include <h1>, <h2>/<h3>, and <p> paragraphs.
+- For EACH H2/H3 section, write ${paragraphsPerSection} paragraphs, each 3–6 sentences, with concrete tips, examples, and action steps.
+- If Custom Outline is present, keep headings EXACTLY as provided. Do NOT invent extra H2 that are not in the outline.
+- If NO custom outline is provided, you MUST create a complete structure and write the article body (not a bullet outline). Use this structure:
+${!customOutline ? `
+  - Introduction (1–2 paragraphs with the main keyword)
+  - 3–6 main H2 sections, each with H3 as needed (each section 2–4 paragraphs)
+  - FAQ section with at least 3 Q&A
+  - Conclusion with a clear call-to-action
+` : ''}
+- Avoid outline-only responses or bullet-only content. Bulleted/numbered lists are allowed only for checklists, processes, or FAQs within sections; the core body MUST be paragraphs.
 - Use Vietnamese when language=vi.${brandVoiceText}
-- Minimum total length close to Word Count.
+- Aim for at least the Target Word Count. Do not return less than ~90% of the target length.
 - Avoid generic filler like "Content will be generated here".
 
-If no custom outline is provided, use the following structure:
-${!customOutline ? `
-- Introduction with keyword (1–2 paragraphs)
-- Main sections with H2/H3 headings (each 2–4 paragraphs)
-- FAQ section with at least 3 Q&A
-- Conclusion with call-to-action
-` : ''}
-
 SEO Requirements:
-- Include target keyword in title and first paragraph
-- Use keyword density 1-2%
-- Include H2/H3 headings with related keywords
-- Add meta description (<= 160 characters)
-- Internal linking suggestions
+- Include the primary keyword in the title and the first paragraph
+- Keep keyword density roughly 1–2% (natural usage)
+- Use H2/H3 headings with related keywords
+- Provide a meta description (<= 160 characters)
+- Suggest 2–3 internal links near the end
 
 Return ONLY valid JSON exactly as:
 {

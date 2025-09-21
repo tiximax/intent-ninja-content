@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.6.3 (2025-09-21)
+
+Các thay đổi nổi bật:
+
+- Edge Function: sửa prompt khi KHÔNG có outline → bắt buộc viết BÀI VIẾT ĐẦY ĐỦ (không phải dàn ý); yêu cầu h1/h2/h3 + đoạn văn <p>, tối thiểu ~90% wordCount, CTA & FAQ.
+- Tests:
+  - Thêm UI test no-outline (mock): tests/e2e/no-outline-full-article.spec.ts
+  - Thêm live test no-outline (skip mặc định): tests/e2e/no-outline-full-article-live.spec.ts
+  - Thêm SEO Meta & Schema test: tests/e2e/seo-meta-schema.spec.ts
+- E2E tổng thể: 69 passed, 1 skipped (live); Mobile suite: 20/20 passed.
+- Deploy: đã deploy generate-content Edge Function lên Supabase.
+- CI: chuẩn bị workflows cho E2E PR/Push (mock) và Live (manual/nightly).
+
 ## v0.6.2 (2025-09-21)
 
 Các thay đổi nổi bật:

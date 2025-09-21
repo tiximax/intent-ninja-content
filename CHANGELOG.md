@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.6.2 (2025-09-21)
+
+Các thay đổi nổi bật:
+
+- CI/Playwright
+  - Thay action cũ microsoft/playwright-github-action bằng lệnh khuyến nghị mới: `npx playwright install --with-deps` trong e2e-live.yml và e2e-nightly.yml (khắc phục lỗi deprecated trên Ubuntu runners).
+  - Live workflow “E2E Live (Manual)” chạy thành công suite orchestrator3000 (1 passed).
+
+- Tài liệu
+  - Bổ sung checklist soát payload Content Generator vào agent.md.
+
+## v0.6.1 (2025-09-21)
+
+Các thay đổi nổi bật:
+
+- E2E ổn định (mock)
+  - playwright.config.ts: bỏ qua các tệp `*.live.spec.ts` trong suite mặc định để tránh phụ thuộc mạng.
+  - Thêm CI Nightly: `.github/workflows/e2e-nightly.yml` chạy E2E mock hằng ngày.
+- Live workflow thủ công
+  - `.github/workflows/e2e-live.yml`: cho phép chọn suite (orchestrator3000/generate-content/gemini/serpapi/all).
+- Toast & Tests
+  - Thêm data-testid ổn định cho enhanced-toast: `toast-{context}-{type}`; cập nhật E2E dùng getByTestId thay vì so text.
+  - Cập nhật assertion lưu nội dung: dùng “Đã lưu thành công” cho thống nhất với hệ thống toast.
+- Dashboard Quick Action
+  - Bổ sung các trường vào payload: `brandVoicePreset`, `brandCustomStyle`, `sectionDepth` lấy từ draft localStorage.
+- Tài liệu
+  - agent.md: cập nhật hướng dẫn chạy live, Nightly, và checklist kiểm tra payload.
+
+Kết quả kiểm thử:
+- Full E2E (mock): 63 passed, 1 skipped.
+- Mobile responsiveness: 20/20 passed.
+
 ## v0.6.0 (2025-09-19)
 
 Các thay đổi nổi bật:

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,9 @@ import {
   BarChart3,
   Filter,
   Copy,
-  Download
+  Download,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { useContentManager } from '@/hooks/useContentManager';
 import { useProjectManager } from '@/hooks/useProjectManager';
@@ -48,6 +50,43 @@ export default function ContentLibrary() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+
+  // Voice search state
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+
+  const startVoiceSearch = () => {
+    try {
+      const W: any = window as any;
+      const SR = W.webkitSpeechRecognition || W.SpeechRecognition;
+      if (!SR) {
+        // Fallback: do nothing if not supported
+        return;
+      }
+      const rec = new SR();
+      recognitionRef.current = rec;
+      rec.lang = 'vi-VN';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (event: any) => {
+        try {
+          const transcript = event?.results?.[0]?.[0]?.transcript || '';
+          if (transcript) setSearchTerm(transcript);
+        } catch {}
+      };
+      rec.onerror = () => { setIsListening(false); };
+      rec.onend = () => { setIsListening(false); };
+      setIsListening(true);
+      rec.start();
+    } catch {
+      setIsListening(false);
+    }
+  };
+
+  const stopVoiceSearch = () => {
+    try { recognitionRef.current?.stop?.(); } catch {}
+    setIsListening(false);
+  };
 
   const baseFiltered = useMemo(() => {
     // Project matching by filter
@@ -264,15 +303,28 @@ export default function ContentLibrary() {
           >
             So sánh ({selectedIds.length})
           </Button>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Tìm kiếm nội dung..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-              data-testid="library-search"
-            />
+          <div className="relative flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Tìm kiếm nội dung..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-64"
+                data-testid="library-search"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={isListening ? 'Dừng tìm kiếm giọng nói' : 'Tìm kiếm bằng giọng nói'}
+              aria-pressed={isListening}
+              onClick={() => (isListening ? stopVoiceSearch() : startVoiceSearch())}
+              data-testid="library-voice-btn"
+            >
+              {isListening ? <MicOff className="h-4 w-4 text-red-600" /> : <Mic className="h-4 w-4" />}
+            </Button>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32" data-testid="library-filter-status">

@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.6.5-rc1 (2025-09-21)
+
+Pre-release (RC) changes:
+
+- Content Library
+  - New filters: “Nội dung chứa” (body contains) and toggle “Chỉ tìm tiêu đề” (title-only). Both persisted to URL (?body=, ?titleOnly=1).
+  - E2E coverage: library-body-title-filters.spec.ts
+- Observability
+  - Added Sentry breadcrumbs for content generation flow: start, success, failure, expansion attempts and completion/cancel.
+  - No changes required to env; breadcrumbs only active when VITE_SENTRY_DSN is set (not in E2E/mock).
+- Compatibility
+  - No breaking changes. Works with v0.6.4 features (Smart Filters, Voice Search, requestId, Sentry base).
+
 ## v0.6.4 (2025-09-21)
 
 Các thay đổi nổi bật:

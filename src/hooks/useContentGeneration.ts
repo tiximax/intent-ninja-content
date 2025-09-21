@@ -157,6 +157,21 @@ export const useContentGeneration = () => {
     };
     const requestId = genReqId();
 
+    // Sentry breadcrumb: start
+    try {
+      const { breadcrumb } = await import('@/observability/sentry');
+      breadcrumb('content_generation', 'start', {
+        title: request.title,
+        language: request.language,
+        tone: request.tone,
+        wordCount: request.wordCount,
+        sectionDepth: request.sectionDepth,
+        brandVoicePreset: request.brandVoicePreset || '',
+        outlineCount: Array.isArray(request.outline) ? request.outline.length : 0,
+        requestId,
+      }, 'info');
+    } catch {}
+
     // Hiển thị loading toast và lấy id để cập nhật sau
     const loadingToastId = enhancedToast.content.start();
 
@@ -232,8 +247,13 @@ export const useContentGeneration = () => {
 
       try {
         const reqId = (data as any)?.requestId;
-        const { setSentryRequestId } = await import('@/observability/sentry');
+        const { setSentryRequestId, breadcrumb } = await import('@/observability/sentry');
         setSentryRequestId(reqId);
+        breadcrumb('content_generation', 'success', {
+          requestId: reqId,
+          seoScore: data?.content?.seoScore,
+          headingsCount: Array.isArray(data?.content?.headings) ? data.content.headings.length : undefined,
+        }, 'info');
       } catch {}
 
       // Ensure minimum words by orchestrating expansions when backend returns short content
@@ -243,6 +263,10 @@ export const useContentGeneration = () => {
         let currentCount = countWordsFromHtml(currentHtml);
 
         if (targetWords > 0 && currentCount < targetWords) {
+          try {
+            const { breadcrumb } = await import('@/observability/sentry');
+            breadcrumb('content_generation', 'expand_start', { targetWords, currentCount }, 'info');
+          } catch {}
           setIsExpanding(true);
           const progressId = 'expansion-progress';
           enhancedToast.show({ type: 'loading', context: 'content-generation', id: progressId, title: 'Đang mở rộng nội dung', description: `Bắt đầu mở rộng...` });
@@ -265,6 +289,7 @@ export const useContentGeneration = () => {
             const plan = expansionOutlines[attempt % expansionOutlines.length];
             try {
               enhancedToast.show({ type: 'loading', context: 'content-generation', id: 'expansion-progress', title: 'Đang mở rộng nội dung', description: `(${attempt + 1}/8) Vui lòng chờ...`, dedupe: true });
+              try { const { breadcrumb } = await import('@/observability/sentry'); breadcrumb('content_generation', 'expand_attempt', { attempt: attempt + 1 }, 'debug'); } catch {}
               const { data: expData, error: expError } = await supabase.functions.invoke('generate-content', {
                 body: {
                   ...request,
@@ -292,6 +317,11 @@ export const useContentGeneration = () => {
           enhancedToast.dismiss('expansion-progress');
           setIsExpanding(false);
 
+          try {
+            const { breadcrumb } = await import('@/observability/sentry');
+            breadcrumb('content_generation', cancelExpansionRef.current ? 'expand_cancel' : 'expand_done', { currentCount, targetWords }, 'info');
+          } catch {}
+
           if (cancelExpansionRef.current) {
             enhancedToast.warning('Đã dừng mở rộng', `Độ dài hiện tại: ${currentCount} từ`, 'content-generation');
           } else if (currentCount >= targetWords) {
@@ -308,6 +338,10 @@ export const useContentGeneration = () => {
       console.log('Content generation completed successfully');
       return data;
     } catch (error) {
+      try {
+        const { breadcrumb } = await import('@/observability/sentry');
+        breadcrumb('content_generation', 'failure', { message: (error as any)?.message }, 'error');
+      } catch {}
       console.error('Content generation failed after retries:', error);
       
       if (error instanceof RetryError) {

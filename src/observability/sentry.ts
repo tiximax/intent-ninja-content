@@ -31,3 +31,11 @@ export function setSentryRequestId(reqId?: string) {
     // noop
   }
 }
+
+export function breadcrumb(category: string, message: string, data?: Record<string, unknown>, level: 'debug' | 'info' | 'warning' | 'error' = 'info') {
+  try {
+    Sentry.addBreadcrumb({ category, message, data, level });
+  } catch {
+    // noop
+  }
+}

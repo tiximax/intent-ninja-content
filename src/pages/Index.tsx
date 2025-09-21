@@ -88,7 +88,7 @@ const Index = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12" style={{ contentVisibility: 'auto', containIntrinsicSize: '800px' }}>
           <Card className="shadow-soft hover:shadow-medium transition-all duration-300 group">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
@@ -139,7 +139,7 @@ const Index = () => {
         </div>
 
         {/* Benefits Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12" style={{ contentVisibility: 'auto', containIntrinsicSize: '900px' }}>
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-foreground">
               Tại sao chọn Intent Ninja?
@@ -195,7 +195,7 @@ const Index = () => {
         </div>
 
         {/* CTA Section */}
-        <Card className="shadow-medium bg-gradient-hero text-white text-center p-8">
+        <Card className="shadow-medium bg-gradient-hero text-white text-center p-8" style={{ contentVisibility: 'auto', containIntrinsicSize: '400px' }}>
           <CardContent className="space-y-4">
             <h2 className="text-2xl md:text-3xl font-bold">
               Sẵn sàng tạo nội dung SEO chuyên nghiệp?

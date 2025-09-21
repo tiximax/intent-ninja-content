@@ -35,13 +35,13 @@ export function LandingLayout({ children }: LandingLayoutProps) {
           </Link>
           {isAuthenticated && (
             <>
-              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => { import('@/pages/Dashboard'); }}>
                 Dashboard
               </Link>
-              <Link to="/keyword-research" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/keyword-research" className="text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => { import('@/pages/KeywordResearch'); }}>
                 Keyword Research
               </Link>
-              <Link to="/seo-tools" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/seo-tools" className="text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => { import('@/pages/SeoTools'); }}>
                 SEO Tools
               </Link>
             </>
@@ -75,15 +75,15 @@ export function LandingLayout({ children }: LandingLayoutProps) {
           <div className="hidden md:flex items-center space-x-2">
             {isAuthenticated ? (
               <Button asChild variant="default">
-                <Link to="/dashboard">Dashboard</Link>
+                <Link to="/dashboard" onMouseEnter={() => { import('@/pages/Dashboard'); }}>Dashboard</Link>
               </Button>
             ) : (
               <>
                 <Button asChild variant="ghost">
-                  <Link to="/auth">Đăng nhập</Link>
+                  <Link to="/auth" onMouseEnter={() => { import('@/pages/Auth'); }}>Đăng nhập</Link>
                 </Button>
                 <Button asChild variant="default">
-                  <Link to="/auth">Đăng ký</Link>
+                  <Link to="/auth" onMouseEnter={() => { import('@/pages/Auth'); }}>Đăng ký</Link>
                 </Button>
               </>
             )}

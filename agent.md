@@ -686,3 +686,32 @@ Hướng dẫn sử dụng nhanh:
 2) Chọn Brand voice & Độ sâu mỗi mục → “Tạo nội dung từ Outline”
 3) Để chỉnh 1 mục: bấm Regenerate ở dòng H2 tương ứng (giữ nguyên tiêu đề, nội dung được viết lại sâu hơn)
 4) Có thể export HTML/Markdown hoặc Lưu vào dự án
+
+---
+
+## Cập nhật 2025-09-21 – Ổn định E2E, tách live tests khỏi suite mặc định, thêm CI nightly
+
+- Kết quả chạy test tại local (Windows, Node 24):
+  - mobile-responsiveness.spec.ts: 20/20 PASSED (~25.5s lần đầu, ~11–12s các lần sau do cache)
+  - Full E2E (mock): 63 passed, 1 skipped (~1.2m)
+- Sửa lỗi E2E nhỏ liên quan đến thông điệp toast lưu nội dung:
+  - Cập nhật tests/e2e/content-save.spec.ts: kiểm tra toast thành công với nội dung "Đã lưu thành công" để đồng bộ với hệ thống enhanced-toast (context `data-save`).
+- Tách live tests ra khỏi suite mặc định để tránh fail khi chạy mock mode:
+  - playwright.config.ts: thêm `testIgnore: /.*live\.spec\.ts$/` (bộ mặc định chỉ chạy mock)
+  - Khi muốn chạy live: dùng `playwright.live.config.ts`, ví dụ: `npx playwright test -c playwright.live.config.ts tests/e2e/generate-3000-ui-live.spec.ts`
+- Thiết lập CI Nightly (mock mode):
+  - Thêm file .github/workflows/e2e-nightly.yml để chạy Playwright hằng ngày (cron 18:00 UTC), reporter GitHub, upload artifacts khi lỗi.
+
+Hướng dẫn nhanh:
+- Chạy full E2E (mock):
+  ```powershell path=null start=null
+  npm run -s test:e2e -- --reporter=line --workers=2
+  ```
+- Chạy live UI 3000 words (cần Edge Function hoạt động + env thật):
+  ```powershell path=null start=null
+  npx playwright test -c playwright.live.config.ts tests/e2e/generate-3000-ui-live.spec.ts
+  ```
+
+Next (đề xuất):
+- Thêm workflow thủ công e2e-live.yml để chạy live tests khi có secrets (VITE_SUPABASE_URL/ANON_KEY) — cần bạn duyệt secrets.
+- Nếu muốn, mình sẽ commit & push các thay đổi hiện tại (config/test/CI) vào master, tạo tag v0.6.1.

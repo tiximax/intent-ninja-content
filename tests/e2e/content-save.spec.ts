@@ -46,5 +46,5 @@ test('create project, generate mock content and save', async ({ page }) => {
   await saveBtn.click();
 
   // Toast thành công
-  await expect(page.getByText('Lưu nội dung thành công')).toBeVisible();
+  await expect(page.getByText('Đã lưu thành công')).toBeVisible();
 });

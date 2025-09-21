@@ -16,6 +16,7 @@ import SeoMetaSchema from "@/components/SeoMetaSchema";
 import { ContentPreview } from "@/components/ContentPreview";
 const CompetitorAnalysisLazy = lazy(() => import("@/components/CompetitorAnalysis").then(m => ({ default: m.CompetitorAnalysis })));
 import ContentLibrary from "@/components/ContentLibrary";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import { useContentGeneration } from "@/hooks/useContentGeneration";
 import { useContentManager } from "@/hooks/useContentManager";
 import { useProjectManager } from "@/hooks/useProjectManager";
@@ -334,6 +335,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-6">
+                <RecentlyViewed />
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold">Nội dung đã tạo</h2>
                   <div className="flex gap-2">

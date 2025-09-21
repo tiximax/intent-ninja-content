@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,9 @@ import {
   Star,
   Calendar,
   BarChart3,
-  Filter
+  Filter,
+  Copy,
+  Download
 } from 'lucide-react';
 import { useContentManager } from '@/hooks/useContentManager';
 import { useProjectManager } from '@/hooks/useProjectManager';
@@ -75,10 +77,36 @@ export default function ContentLibrary() {
     }
   };
 
+  const addToRecentlyViewed = (content: any) => {
+    try {
+      const key = 'recent-contents';
+      const raw = localStorage.getItem(key);
+      const list: any[] = raw ? JSON.parse(raw) : [];
+      const item = {
+        id: content.id,
+        title: content.title,
+        updated_at: content.updated_at,
+        seo_score: content.seo_score ?? null,
+        snippet: (content.meta_description || content.content_body?.slice(0, 180) || '').toString(),
+      };
+      const filtered = list.filter((x) => x.id !== content.id);
+      filtered.unshift(item);
+      const limited = filtered.slice(0, 10);
+      localStorage.setItem(key, JSON.stringify(limited));
+    } catch {}
+  };
+
   const openPreview = (content: any) => {
     setSelectedContent(content);
     setIsPreviewOpen(true);
+    addToRecentlyViewed(content);
   };
+
+  useEffect(() => {
+    // Tự động tải danh sách nội dung (local mode dùng 'test-user' làm mặc định)
+    const uid = (user as any)?.id || 'test-user';
+    fetchContents(currentProject?.id, uid);
+  }, [currentProject, user]);
 
   if (loading) {
     return (
@@ -181,6 +209,7 @@ export default function ContentLibrary() {
                     variant="outline"
                     size="sm"
                     onClick={() => openPreview(content)}
+                    data-testid={`open-quick-view-${content.id}`}
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     Xem
@@ -217,9 +246,14 @@ export default function ContentLibrary() {
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto" data-testid="quick-view-dialog">
           <DialogHeader>
-            <DialogTitle>{selectedContent?.title}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{selectedContent?.title}</span>
+              {selectedContent?.seo_score != null && (
+                <span className="text-sm text-muted-foreground">SEO: {selectedContent.seo_score}%</span>
+              )}
+            </DialogTitle>
           </DialogHeader>
           {selectedContent && (
             <div className="space-y-4">
@@ -231,16 +265,14 @@ export default function ContentLibrary() {
                   </p>
                 </div>
               )}
-              
+
               <div>
-                <h4 className="font-semibold mb-2">Nội dung</h4>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <pre className="whitespace-pre-wrap text-sm">
-                    {selectedContent.content_body}
-                  </pre>
-                </div>
+                <h4 className="font-semibold mb-2">Tóm tắt</h4>
+                <p className="text-sm text-foreground bg-background border rounded-md p-3">
+                  {(selectedContent.content_body || '').slice(0, 300)}{(selectedContent.content_body || '').length > 300 ? '…' : ''}
+                </p>
               </div>
-              
+
               {selectedContent.target_keywords && selectedContent.target_keywords.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2">Keywords</h4>
@@ -253,6 +285,34 @@ export default function ContentLibrary() {
                   </div>
                 </div>
               )}
+
+              <div className="flex items-center gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => { try { await navigator.clipboard.writeText(selectedContent.content_body || ''); } catch {} }}
+                  data-testid="quick-view-copy"
+                >
+                  <Copy className="h-4 w-4 mr-1" /> Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const htmlContent = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${selectedContent.title}</title><meta name="description" content="${selectedContent.meta_description || ''}"></head><body>${selectedContent.content_body}</body></html>`;
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${(selectedContent.title || 'noi-dung').replace(/\s+/g, '-').toLowerCase()}.html`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  data-testid="quick-view-export-html"
+                >
+                  <Download className="h-4 w-4 mr-1" /> Export HTML
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

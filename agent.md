@@ -734,4 +734,14 @@ Next (đề xuất):
   - Dùng cấu hình Playwright: playwright.live.config.ts
   - Env trong workflow: VITE_USE_MOCK_CONTENT=false, VITE_BYPASS_AUTH=true, VITE_E2E_TEST_MODE=true
 - Lưu ý:
-  - Keys cho OpenAI/Gemini/SerpApi phải được cấu hình trên Supabase Edge Functions (secrets) để live tests hoạt động; workflow chỉ cần Supabase URL/Anon Key để gọi function.
+- Keys cho OpenAI/Gemini/SerpApi phải được cấu hình trên Supabase Edge Functions (secrets) để live tests hoạt động; workflow chỉ cần Supabase URL/Anon Key để gọi function.
+
+## Checklist Soát Payload Content Generator – 2025-09-21
+
+- Form submit gửi đầy đủ: title, keywords[], language, tone, wordCount, outline (chỉ khi có), brandVoicePreset, brandCustomStyle, sectionDepth.
+- Nút Quick Action “Tạo Nội Dung SEO” (Dashboard) sử dụng draft trong localStorage và ĐÃ bổ sung: brandVoicePreset, brandCustomStyle, sectionDepth vào payload.
+- Edge Function generate-content:
+  - Áp dụng yêu cầu viết FULL content (không phải outline), 2–5 đoạn mỗi H2/H3 theo sectionDepth.
+  - Nếu có outline: giữ NGUYÊN heading H2/H3 như đã cung cấp. Nếu không có: dùng cấu trúc mặc định (Intro, Main sections, FAQ ≥ 3, Conclusion).
+  - Hỗ trợ brandVoicePreset/brandCustomStyle; trả JSON chuẩn: title, metaDescription ≤160, content HTML, headings (4–10), keywordDensity, seoScore.
+- Orchestrator tối thiểu số từ (frontend) tự động mở rộng đến khi đạt wordCount, có toast tiến trình và nút dừng.

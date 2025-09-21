@@ -15,7 +15,8 @@ const log = (level: 'error' | 'warn' | 'info' | 'debug', msg: string, data: Reco
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 interface ContentRequest {
@@ -387,6 +388,14 @@ return new Response(JSON.stringify({ success: true, sectionHtml: fallbackHtml, t
       }
     }
 
+    const noOutlineStructure = [
+      '  - Introduction (1–2 paragraphs with the main keyword)',
+      '  - 3–6 main H2 sections, each with H3 as needed (each section 2–4 paragraphs)',
+      '  - FAQ section with at least 3 Q&A',
+      '  - Conclusion with a clear call-to-action',
+    ].join('\n');
+    const structureBlock = customOutline ? '' : ('\n' + noOutlineStructure + '\n');
+
     const contentPrompt = `Create an SEO-optimized HTML ARTICLE for: "${title}"
 
 Primary Intent: ${intentAnalysis.primaryIntent}
@@ -402,13 +411,7 @@ WRITING DIRECTIVES (MANDATORY):
 - For EACH H2/H3 section, write ${paragraphsPerSection} paragraphs, each 3–6 sentences, with concrete tips, examples, and action steps.
 - If Custom Outline is present, keep headings EXACTLY as provided. Do NOT invent extra H2 that are not in the outline.
 - If NO custom outline is provided, you MUST create a complete structure and write the article body (not a bullet outline). Use this structure:
-${!customOutline ? `
-  - Introduction (1–2 paragraphs with the main keyword)
-  - 3–6 main H2 sections, each with H3 as needed (each section 2–4 paragraphs)
-  - FAQ section with at least 3 Q&A
-  - Conclusion with a clear call-to-action
-` : ''}
-- Avoid outline-only responses or bullet-only content. Bulleted/numbered lists are allowed only for checklists, processes, or FAQs within sections; the core body MUST be paragraphs.
+${structureBlock}- Avoid outline-only responses or bullet-only content. Bulleted/numbered lists are allowed only for checklists, processes, or FAQs within sections; the core body MUST be paragraphs.
 - Use Vietnamese when language=vi.${brandVoiceText}
 - Aim for at least the Target Word Count. Do not return less than ~90% of the target length.
 - Avoid generic filler like "Content will be generated here".
@@ -439,6 +442,7 @@ let generatedContent: {
       keywordDensity: string;
       seoScore: number;
     } | undefined;
+let providerUsed: 'openai' | 'gemini' | 'fallback' = 'fallback';
 
     // Strict outline mode: generate per section and assemble, avoiding extra headings
     if (isStrictOutlineMode) {
@@ -469,6 +473,7 @@ let generatedContent: {
             let raw = j.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             const parsed = JSON.parse(raw);
             sections.push(parsed.sectionHtml);
+            providerUsed = 'openai';
           } else if (!fallbackOnly && geminiApiKey) {
             const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
@@ -483,6 +488,7 @@ let generatedContent: {
             const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             const parsed = JSON.parse(cleaned);
             sections.push(parsed.sectionHtml);
+            providerUsed = 'gemini';
           } else {
             // Fallback: minimal section
             sections.push(`<h2 id=\"${slug}\">${heading}</h2><p>Nội dung chi tiết theo outline.</p>`);
@@ -546,6 +552,7 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
           rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
           
           generatedContent = JSON.parse(rawContent);
+          providerUsed = 'openai';
         } catch (parseError) {
           log('warn', 'content_parse_error_openai', { reqId, error: String(parseError) });
           console.error('Raw content:', contentData.choices[0].message.content);
@@ -568,6 +575,7 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         generatedContent = JSON.parse(cleaned);
+        providerUsed = 'gemini';
       } else {
         throw new Error('No AI provider available for content');
       }
@@ -591,6 +599,9 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
         fallback.headings = [fallback.title, ...heads];
       }
       generatedContent = fallback;
+      providerUsed = 'fallback';
+    }
+
     }
 
     // Normalize output
@@ -599,7 +610,8 @@ const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/c
         intentAnalysis,
         content: generatedContent,
         success: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        providerUsed,
       } as any;
       // Clamp and trim
       if (resp?.content?.metaDescription && resp.content.metaDescription.length > 160) {
@@ -724,7 +736,7 @@ return new Response(
         error: 'Content generation failed', 
         details: (error as any).message,
         success: false,
-        requestId: (req as any)?.headers?.get?.('x-request-id') || undefined 
+        requestId: reqId
       }),
       {
         status: 500,

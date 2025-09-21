@@ -47,6 +47,8 @@ interface ContentGenerationResponse {
   content: GeneratedContent;
   success: boolean;
   timestamp: string;
+  // Optional: backend may add this; we also detect fallback heuristically from HTML
+  providerUsed?: 'openai' | 'gemini' | 'fallback';
 }
 
 const isMockEnabled = String((((import.meta as unknown as { env?: Record<string, string> }).env)?.VITE_USE_MOCK_CONTENT ?? '')).toLowerCase() === 'true';
@@ -196,7 +198,6 @@ export const useContentGeneration = () => {
         async () => {
           const { data, error } = await supabase.functions.invoke('generate-content', {
             body: request,
-            headers: { 'x-request-id': requestId },
           });
           
           if (error) {
@@ -225,7 +226,18 @@ export const useContentGeneration = () => {
 
       const data: ContentGenerationResponse = response;
 
-      // Nếu backend trả về fallback kém chất lượng, thay bằng bản mock chất lượng
+      // Heuristic: detect backend fallback HTML (AI keys missing or provider error)
+      const isBackendFallbackHtml = (html: string) => {
+        const s = String(html || '').toLowerCase();
+        return (
+          s.includes('phiên bản fallback khi ai không khả dụng') ||
+          s.includes('fallback when ai is unavailable') ||
+          // very specific fallback structure markers
+          (/\bmục lục\b/i.test(s) && /giới thiệu/i.test(s) && /tổng quan/i.test(s) && /quy trình đề xuất/i.test(s) && /checklist nhanh/i.test(s))
+        );
+      };
+
+      // Nếu backend trả về fallback quá tối thiểu (từ các mẫu phổ biến), cải thiện bằng mock chất lượng
       const isPoorFallback = typeof data?.content?.content === 'string' && (
         /Content will be generated here/i.test(data.content.content) ||
         /This is AI-generated content/i.test(data.content.content)
@@ -246,6 +258,15 @@ export const useContentGeneration = () => {
       setIntentAnalysis(data.intentAnalysis);
       setGeneratedContent(data.content);
 
+      const backendInFallback = (data as any)?.providerUsed === 'fallback' || isBackendFallbackHtml(data?.content?.content || '');
+      if (backendInFallback) {
+        enhancedToast.warning(
+          'Backend đang ở chế độ Fallback',
+          'Chưa cấu hình AI provider (OPENAI_API_KEY/GEMINI_API_KEY) hoặc provider lỗi. Nội dung chỉ mang tính tham khảo.',
+          'content-generation'
+        );
+      }
+
       try {
         const reqId = (data as any)?.requestId;
         const { setSentryRequestId, breadcrumb } = await import('@/observability/sentry');
@@ -263,7 +284,9 @@ export const useContentGeneration = () => {
         let currentHtml = data.content.content || '';
         let currentCount = countWordsFromHtml(currentHtml);
 
-        if (targetWords > 0 && currentCount < targetWords) {
+        const backendInFallback = (data as any)?.providerUsed === 'fallback' || isBackendFallbackHtml(currentHtml);
+
+        if (!backendInFallback && targetWords > 0 && currentCount < targetWords) {
           try {
             const { breadcrumb } = await import('@/observability/sentry');
             breadcrumb('content_generation', 'expand_start', { targetWords, currentCount }, 'info');
@@ -297,7 +320,6 @@ export const useContentGeneration = () => {
                   title: `${request.title} — Phần mở rộng #${attempt + 1}`,
                   outline: plan,
                 },
-                headers: { 'x-request-id': `${requestId}-exp-${attempt + 1}` },
               });
               if (expError || !expData?.content?.content) break;
 

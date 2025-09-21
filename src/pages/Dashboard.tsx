@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,13 +10,14 @@ import ContentGeneratorForm from "@/components/ContentGeneratorForm";
 import KeywordResearchPanel from "@/components/KeywordResearchPanel";
 import { IntentAnalysisCard } from "@/components/IntentAnalysisCard";
 import { SeoScoreCard } from "@/components/SeoScoreCard";
+import { lazyWithRetry } from "@/utils/lazyWithRetry";
 // Lazy-loaded heavy components
-const ContentExporterLazy = lazy(() => import("@/components/ContentExporter").then(m => ({ default: m.ContentExporter })));
+const ContentExporterLazy = lazyWithRetry(() => import("@/components/ContentExporter").then(m => ({ default: m.ContentExporter as any })));
 // Lazy-loaded heavy components
-const SeoMetaSchemaLazy = lazy(() => import("@/components/SeoMetaSchema").then(m => ({ default: m.default })));
-const SeoScoreCardLazy = lazy(() => import("@/components/SeoScoreCard").then(m => ({ default: m.SeoScoreCard })));
-const ContentLibraryLazy = lazy(() => import("@/components/ContentLibrary").then(m => ({ default: m.default })));
-const CompetitorAnalysisLazy = lazy(() => import("@/components/CompetitorAnalysis").then(m => ({ default: m.CompetitorAnalysis })));
+const SeoMetaSchemaLazy = lazyWithRetry(() => import("@/components/SeoMetaSchema").then(m => ({ default: (m as any).default })));
+const SeoScoreCardLazy = lazyWithRetry(() => import("@/components/SeoScoreCard").then(m => ({ default: m.SeoScoreCard as any })));
+const ContentLibraryLazy = lazyWithRetry(() => import("@/components/ContentLibrary").then(m => ({ default: (m as any).default })));
+const CompetitorAnalysisLazy = lazyWithRetry(() => import("@/components/CompetitorAnalysis").then(m => ({ default: m.CompetitorAnalysis as any })));
 import { ContentPreview } from "@/components/ContentPreview";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { useContentGeneration } from "@/hooks/useContentGeneration";

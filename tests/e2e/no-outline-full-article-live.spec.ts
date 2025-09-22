@@ -8,8 +8,10 @@ test('live generate-content with empty outline returns full article (has paragra
   if (process.env.RUN_LIVE_GEN !== 'true') {
     test.skip(true, 'RUN_LIVE_GEN is not true; skipping live integration test');
   }
-  const url = process.env.VITE_SUPABASE_URL;
-  const anon = process.env.VITE_SUPABASE_ANON_KEY;
+  const rawUrl = process.env.VITE_SUPABASE_URL || '';
+  const rawAnon = process.env.VITE_SUPABASE_ANON_KEY || '';
+  const url = rawUrl.replace(/[{}]/g, '');
+  const anon = rawAnon.replace(/[{}]/g, '');
   if (!url || !anon) {
     test.skip(true, 'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
   }

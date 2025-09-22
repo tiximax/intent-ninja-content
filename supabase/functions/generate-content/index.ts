@@ -232,67 +232,93 @@ serve(async (req) => {
       Return ONLY valid JSON, no additional text.`;
 
       try {
-        // Prefer OpenAI if available; if none, skip to fallback
+        // Prefer OpenAI if available; if it fails and Gemini exists, try Gemini, and vice versa.
         if (!fallbackOnly && openAIApiKey) {
-const intentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { 
-                role: 'system', 
-                content: 'You are an SEO expert. Return only valid JSON without any markdown formatting or additional text.' 
-              },
-              { role: 'user', content: intentPrompt }
-            ],
-            max_tokens: 1000,
-            temperature: 0.3,
-          }),
-        });
-
-          if (!intentResponse.ok) {
-            const errorText = await intentResponse.text();
-          log('warn', 'openai_intent_http_error', { reqId, status: intentResponse.status, error: errorText });
-            throw new Error(`OpenAI API error: ${intentResponse.status} - ${errorText}`);
-          }
-
-          const intentData = await intentResponse.json();
-        log('debug', 'intent_response_received', { reqId });
-          
-          let rawContent = intentData.choices[0].message.content;
-          // Clean up any markdown formatting
-          rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          
           try {
+            const intentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openAIApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  { role: 'system', content: 'You are an SEO expert. Return only valid JSON without any markdown formatting or additional text.' },
+                  { role: 'user', content: intentPrompt }
+                ],
+                max_tokens: 1000,
+                temperature: 0.3,
+              }),
+            });
+            if (!intentResponse.ok) {
+              const errorText = await intentResponse.text();
+              log('warn', 'openai_intent_http_error', { reqId, status: intentResponse.status, error: errorText });
+              throw new Error(`OpenAI API error: ${intentResponse.status} - ${errorText}`);
+            }
+            const intentData = await intentResponse.json();
+            log('debug', 'intent_response_received', { reqId });
+            let rawContent = intentData.choices[0].message.content;
+            rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             intentAnalysis = JSON.parse(rawContent);
-          } catch (parseError) {
-            log('warn', 'intent_parse_error_openai', { reqId, error: String(parseError) });
-            console.error('Raw content:', rawContent);
-            throw parseError;
+          } catch (firstErr) {
+            if (!fallbackOnly && geminiApiKey) {
+              const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
+              const res = await fetchWithTimeout(url, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: intentPrompt }] }] })
+              });
+              if (!res.ok) {
+                const t = await res.text();
+                log('warn', 'gemini_intent_http_error', { reqId, status: res.status, error: t });
+                throw new Error(`Gemini API error: ${res.status} - ${t}`);
+              }
+              const data = await res.json();
+              const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+              intentAnalysis = JSON.parse(cleaned);
+            } else {
+              throw firstErr;
+            }
           }
         } else if (!fallbackOnly && geminiApiKey) {
-          // Gemini fallback for intent
-          const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
-const res = await fetchWithTimeout(url, {
-
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: intentPrompt }] }] })
-          });
-          if (!res.ok) {
-            const t = await res.text();
-            log('warn', 'gemini_intent_http_error', { reqId, status: res.status, error: t });
-            throw new Error(`Gemini API error: ${res.status} - ${t}`);
+          try {
+            const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
+            const res = await fetchWithTimeout(url, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: intentPrompt }] }] })
+            });
+            if (!res.ok) {
+              const t = await res.text();
+              log('warn', 'gemini_intent_http_error', { reqId, status: res.status, error: t });
+              throw new Error(`Gemini API error: ${res.status} - ${t}`);
+            }
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            intentAnalysis = JSON.parse(cleaned);
+          } catch (firstErr) {
+            if (!fallbackOnly && openAIApiKey) {
+              const intentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${openAIApiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: 'gpt-4o-mini',
+                  messages: [ { role: 'system', content: 'You are an SEO expert. Return only valid JSON without any markdown formatting or additional text.' }, { role: 'user', content: intentPrompt } ],
+                  max_tokens: 1000, temperature: 0.3,
+                }),
+              });
+              if (!intentResponse.ok) throw new Error(await intentResponse.text());
+              const intentData = await intentResponse.json();
+              let rawContent = intentData.choices[0].message.content;
+              rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+              intentAnalysis = JSON.parse(rawContent);
+            } else {
+              throw firstErr;
+            }
           }
-          const data = await res.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          intentAnalysis = JSON.parse(cleaned);
         } else {
           throw new Error('No AI provider available for intent');
         }
@@ -515,67 +541,95 @@ let providerUsed: 'openai' | 'gemini' | 'fallback' = 'fallback';
     if (!generatedContent) {
 
     try {
-      // Prefer OpenAI if available; fallback to Gemini; if none, skip API call and go to fallback
+      // Prefer OpenAI if available; if it fails and Gemini exists, try Gemini (and vice versa)
       if (!fallbackOnly && openAIApiKey) {
-const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are an expert SEO content writer. Create high-quality, optimized content that ranks well. Return only valid JSON without any markdown formatting or additional text.' 
-            },
-            { role: 'user', content: contentPrompt }
-          ],
-          max_tokens: 2000,
-          temperature: 0.4,
-        }),
-      });
-
-        if (!contentResponse.ok) {
-          const errorText = await contentResponse.text();
-          log('warn', 'openai_content_http_error', { reqId, status: contentResponse.status, error: errorText });
-          throw new Error(`Content generation failed: ${contentResponse.status} - ${errorText}`);
-        }
-
-        const contentData = await contentResponse.json();
-        log('info', 'content_generated_openai', { reqId });
-
         try {
+          const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: 'You are an expert SEO content writer. Create high-quality, optimized content that ranks well. Return only valid JSON without any markdown formatting or additional text.' },
+                { role: 'user', content: contentPrompt }
+              ],
+              max_tokens: 2000,
+              temperature: 0.4,
+            }),
+          });
+          if (!contentResponse.ok) {
+            const errorText = await contentResponse.text();
+            log('warn', 'openai_content_http_error', { reqId, status: contentResponse.status, error: errorText });
+            throw new Error(`Content generation failed: ${contentResponse.status} - ${errorText}`);
+          }
+          const contentData = await contentResponse.json();
+          log('info', 'content_generated_openai', { reqId });
           let rawContent = contentData.choices[0].message.content;
-          // Clean up any markdown formatting
           rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          
           generatedContent = JSON.parse(rawContent);
           providerUsed = 'openai';
-        } catch (parseError) {
-          log('warn', 'content_parse_error_openai', { reqId, error: String(parseError) });
-          console.error('Raw content:', contentData.choices[0].message.content);
-          throw parseError;
+        } catch (firstErr) {
+          if (!fallbackOnly && geminiApiKey) {
+            const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
+            const res = await fetch(url, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: contentPrompt }] }] })
+            });
+            if (!res.ok) {
+              const t = await res.text();
+              log('warn', 'gemini_content_http_error', { reqId, status: res.status, error: t });
+              throw new Error(`Gemini content failed: ${res.status} - ${t}`);
+            }
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            generatedContent = JSON.parse(cleaned);
+            providerUsed = 'gemini';
+          } else {
+            throw firstErr;
+          }
         }
       } else if (!fallbackOnly && geminiApiKey) {
-        const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: contentPrompt }] }] })
-        });
-        if (!res.ok) {
-          const t = await res.text();
-          log('warn', 'gemini_content_http_error', { reqId, status: res.status, error: t });
-          throw new Error(`Gemini content failed: ${res.status} - ${t}`);
+        try {
+          const mdl = contentModel.startsWith('gemini:') ? contentModel.split(':')[1] : 'gemini-pro';
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent?key=${geminiApiKey}`;
+          const res = await fetch(url, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: contentPrompt }] }] })
+          });
+          if (!res.ok) {
+            const t = await res.text();
+            log('warn', 'gemini_content_http_error', { reqId, status: res.status, error: t });
+            throw new Error(`Gemini content failed: ${res.status} - ${t}`);
+          }
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          generatedContent = JSON.parse(cleaned);
+          providerUsed = 'gemini';
+        } catch (firstErr) {
+          if (!fallbackOnly && openAIApiKey) {
+            const contentResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${openAIApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini', messages: [ { role: 'system', content: 'You are an expert SEO content writer. Create high-quality, optimized content that ranks well. Return only valid JSON without any markdown formatting or additional text.' }, { role: 'user', content: contentPrompt } ], max_tokens: 2000, temperature: 0.4,
+              }),
+            });
+            if (!contentResponse.ok) throw new Error(await contentResponse.text());
+            const contentData = await contentResponse.json();
+            let rawContent = contentData.choices[0].message.content;
+            rawContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            generatedContent = JSON.parse(rawContent);
+            providerUsed = 'openai';
+          } else {
+            throw firstErr;
+          }
         }
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        generatedContent = JSON.parse(cleaned);
-        providerUsed = 'gemini';
       } else {
         throw new Error('No AI provider available for content');
       }

@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "generate": "node scripts/generate-content.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -2,9 +2,23 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { initSentry } from './observability/sentry';
+import { loadEnv } from '@/config/env';
+import { setupFetchLogger } from '@/observability/network';
+
+// Validate ENV early (fail-fast in production)
+try {
+  loadEnv({ failFast: true });
+} catch (e) {
+  console.error('[ENV] Validation failed:', (e as any)?.message || e);
+  // Hard fail in production is desired; in dev this typically won't throw due to defaults
+  throw e;
+}
 
 // Initialize Sentry (no-op if DSN missing or E2E test mode)
 initSentry();
+
+// Setup network fetch logger (breadcrumbs with PII masking)
+try { setupFetchLogger(); } catch { /* no-op: fetch logger is optional */ }
 
 // Auto-recover from dynamic import/chunk load errors by reloading once
 try {
@@ -18,7 +32,7 @@ try {
     }
   };
   window.addEventListener('unhandledrejection', handler as any);
-} catch {}
+} catch { /* no-op: window addEventListener should always exist in browser */ }
 
 // Runtime preconnect/dns-prefetch to Supabase (if configured)
 try {
@@ -35,6 +49,6 @@ try {
     link2.crossOrigin = '';
     document.head.appendChild(link2);
   }
-} catch {}
+} catch { /* no-op: preconnect is best-effort */ }
 
 createRoot(document.getElementById("root")!).render(<App />);

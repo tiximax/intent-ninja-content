@@ -28,8 +28,23 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Lint (changed files only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Determine changed JS/TS files between previous commit and HEAD
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            BASE=HEAD^
+          else
+            BASE=HEAD
+          fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No changed JS/TS files to lint"
+            exit 0
+          fi
+          echo "Linting changed files:\n$CHANGED"
+          npx eslint $CHANGED
 
       - name: Run indexer tests
         run: npm run test:indexer

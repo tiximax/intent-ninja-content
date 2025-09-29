@@ -14,6 +14,7 @@ const SeoTools = lazyWithRetry(() => import('./pages/SeoTools'));
 const ApiSetup = lazyWithRetry(() => import('./pages/ApiSetup'));
 const Settings = lazyWithRetry(() => import('./pages/Settings'));
 const Auth = lazyWithRetry(() => import('./pages/Auth'));
+const ContentIndex = lazyWithRetry(() => import('./pages/ContentIndex'));
 const NotFound = lazyWithRetry(() => import('./pages/NotFound'));
 import AuthGuard from "./components/AuthGuard";
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/seo-tools" element={<AuthGuard><SeoTools /></AuthGuard>} />
                 <Route path="/api-setup" element={<AuthGuard><ApiSetup /></AuthGuard>} />
                 <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                <Route path="/content-index" element={<AuthGuard><ContentIndex /></AuthGuard>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

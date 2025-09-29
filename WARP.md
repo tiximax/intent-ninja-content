@@ -1,5 +1,17 @@
 # WARP.md
 
+Chính sách sử dụng MCP (mức dự án)
+- Luôn sử dụng 3 MCP trong mọi giai đoạn phát triển: Human MCP, Context7 MCP, Chrome DevTools MCP.
+- Kế thừa quy tắc toàn cục tại: C:\Users\Admin\WARP.md; file dự án này sẽ ghi đè khi có khác biệt.
+- Bảo mật: không in/ghi secrets ra console/log; dùng biến môi trường (ví dụ: CONTEXT7_API_KEY). Không commit secrets.
+- Thực thi an toàn: tránh lệnh tương tác/pager; với Git dùng --no-pager khi xem diff/log; không chạy mã không tin cậy.
+- Chất lượng & ổn định: so sánh ≥3 hướng tiếp cận khi cần, thêm validation input, xử lý lỗi có kiểm soát, ưu tiên giải pháp idempotent.
+
+Gợi ý sử dụng 3 MCP:
+- Human MCP: lập kế hoạch, phân tích giải pháp và edge cases; automation demo UI khi cần; performance trace có kiểm soát.
+- Context7 MCP: resolve-library-id trước khi get-library-docs; tập trung chủ đề (topic) đúng phần API đang dùng để giảm sai sót.
+- Chrome DevTools MCP: tạo trace ngắn, theo dõi CWV (LCP/INP/CLS), khoanh vùng nút thắt trước khi tối ưu.
+
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
 Dự án: Vite + React 18 + TypeScript (UI: shadcn-ui + Tailwind). Dữ liệu/auth qua Supabase. Kiểm thử end-to-end với Playwright. Node 20+ khuyến nghị (CI dùng Node 20).

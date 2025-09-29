@@ -10,7 +10,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "generate": "node scripts/generate-content.cjs"
+    "generate": "node scripts/generate-content.cjs",
+    "index:content": "node scripts/index-content.mjs --root public --root src --out output/content_index.json",
+    "index:content:public": "node scripts/index-content.mjs --root public --root src --out output/content_index.json --copy-public",
+    "test:indexer": "node tests/unit/index-content.test.mjs",
+    "test:env": "node tests/unit/env-loader.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

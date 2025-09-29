@@ -1,17 +1,19 @@
 import * as Sentry from '@sentry/react';
+import { getEnv } from '../config/env';
 
 let initialized = false;
 
 export function initSentry() {
   if (initialized) return;
   try {
-    const dsn = (import.meta as any).env?.VITE_SENTRY_DSN as string | undefined;
+    // Use validated env (falls back gracefully in dev)
+    const { VITE_SENTRY_DSN: dsn, VITE_SENTRY_ENV } = getEnv();
     const isE2E = String(((import.meta as any).env?.VITE_E2E_TEST_MODE ?? '')).toLowerCase() === 'true';
     if (!dsn || isE2E) return;
 
     Sentry.init({
       dsn,
-      environment: (import.meta as any).env?.VITE_SENTRY_ENV || (import.meta as any).env?.MODE || 'development',
+      environment: VITE_SENTRY_ENV || (import.meta as any).env?.MODE || 'development',
       integrations: [Sentry.browserTracingIntegration()],
       tracesSampleRate: 0.1,
       replaysSessionSampleRate: 0.0,

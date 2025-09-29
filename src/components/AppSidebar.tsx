@@ -40,6 +40,7 @@ const toolsItems = [
   { title: "SEO Tools", url: "/seo-tools", icon: Wrench },
   { title: "Trends Monitor", url: "/trends", icon: TrendingUp },
   { title: "Competitor Gap", url: "/competitor", icon: Target },
+  { title: "Content Index", url: "/content-index", icon: Library },
 ];
 
 export function AppSidebar() {

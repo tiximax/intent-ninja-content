@@ -4,6 +4,7 @@
 [![E2E (PR/Push)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e.yml)
 [![E2E Nightly (Mock)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-nightly.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-nightly.yml)
 [![E2E Live (Manual)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-live.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/e2e-live.yml)
+[![Unit & Utility Tests](https://github.com/tiximax/intent-ninja-content/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/tiximax/intent-ninja-content/actions/workflows/unit-tests.yml)
 
 ---
 

@@ -37,6 +37,8 @@ blob-report/
 .supabase
 supabase.exe
 supabase/.temp/
+# Ignore local backup of supabase binary
+supabase.exe.bak_*
 
 # OS files
 Thumbs.db

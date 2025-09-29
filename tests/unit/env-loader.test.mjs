@@ -12,7 +12,7 @@ function assert(cond, msg) {
 async function testDevDefaults() {
   // Simulate dev env with minimal vars
   globalThis.__ENV_SHIM = { MODE: 'development' };
-  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.ts')).href);
+  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.js')).href);
   const env = loadEnv({ failFast: false });
   assert(env.MODE === 'development', 'MODE should be development');
   assert(env.VITE_USE_MOCK_CONTENT === true, 'Dev default VITE_USE_MOCK_CONTENT should be true');
@@ -26,7 +26,7 @@ async function testProdFailFastMissingSupabase() {
     VITE_USE_MOCK_CONTENT: 'false',
     VITE_BYPASS_AUTH: 'false',
   };
-  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.ts')).href);
+  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.js')).href);
   let threw = false;
   try {
     loadEnv({ failFast: true });
@@ -45,7 +45,7 @@ async function testProdOkWithSupabase() {
     VITE_SUPABASE_URL: 'https://example.supabase.co',
     VITE_SUPABASE_ANON_KEY: 'anon_key_1234567890',
   };
-  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.ts')).href);
+  const { loadEnv } = await import(url.pathToFileURL(path.resolve('src/config/env.js')).href);
   const env = loadEnv({ failFast: true });
   assert(env.VITE_SUPABASE_URL.includes('https://'), 'VITE_SUPABASE_URL should be valid URL');
   assert(typeof env.VITE_SUPABASE_ANON_KEY === 'string' && env.VITE_SUPABASE_ANON_KEY.length > 0, 'Anon key should be present');
